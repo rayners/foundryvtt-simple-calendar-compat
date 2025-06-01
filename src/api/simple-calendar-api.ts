@@ -98,11 +98,39 @@ enum WidgetPreference {
   ANY = 'any'
 }
 
+/**
+ * Simple Calendar API Bridge implementation
+ * 
+ * Provides 100% Simple Calendar API compatibility by bridging to Seasons & Stars
+ * Integration Interface. Handles all format conversions, CSS/DOM compatibility,
+ * and Simple Calendar-specific quirks while maintaining complete separation
+ * from the underlying calendar system.
+ * 
+ * @example
+ * ```typescript
+ * // Automatic integration with S&S
+ * const api = new SimpleCalendarAPIBridge();
+ * 
+ * // Use standard Simple Calendar API
+ * const currentDate = api.getCurrentDate();
+ * await api.advanceDays(1);
+ * ```
+ */
 export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
+  /** Seasons & Stars integration interface */
   private seasonsStars: SeasonsStarsIntegration | null = null;
+  
+  /** Clock running state for SmallTime integration */
   private clockRunning = false;
+  
+  /** Registry of sidebar buttons added by other modules */
   public sidebarButtons: Array<{name: string, icon: string, callback: Function, tooltip?: string, isToggle?: boolean}> = [];
   
+  /**
+   * Initialize the Simple Calendar API bridge
+   * 
+   * @param seasonsStarsIntegration - Optional S&S integration instance, auto-detected if not provided
+   */
   constructor(seasonsStarsIntegration?: SeasonsStarsIntegration) {
     this.seasonsStars = seasonsStarsIntegration || this.detectSeasonsStars();
     
@@ -161,10 +189,32 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
   }
   
   // Core time functions
+  
+  /**
+   * Get current world time timestamp
+   * 
+   * @returns Current Foundry world time in seconds
+   */
   timestamp(): number {
     return game.time?.worldTime || 0;
   }
   
+  /**
+   * Convert Foundry timestamp to Simple Calendar date format
+   * 
+   * Critical method for Simple Weather integration. Provides complete date
+   * information including formatted display properties for UI rendering.
+   * 
+   * @param timestamp - Foundry world time in seconds
+   * @returns Complete Simple Calendar date object with display formatting
+   * 
+   * @example
+   * ```typescript
+   * const dateInfo = SimpleCalendar.api.timestampToDate(game.time.worldTime);
+   * console.log(`Today is ${dateInfo.display.monthName} ${dateInfo.display.day}${dateInfo.display.daySuffix}`);
+   * // Output: "Today is December 25th"
+   * ```
+   */
   timestampToDate(timestamp: number): SimpleCalendarDate {
     try {
       if (!this.seasonsStars?.api) {
@@ -413,6 +463,31 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
   }
   
   // Simple Weather specific APIs
+  
+  /**
+   * Add sidebar button to calendar widgets
+   * 
+   * Primary integration point for Simple Weather module. Adds buttons to all
+   * available S&S calendar widgets (mini, main, grid) with fallback to DOM
+   * manipulation when S&S APIs are unavailable.
+   * 
+   * @param name - Unique button identifier
+   * @param icon - FontAwesome icon class (e.g., 'fas fa-cloud')
+   * @param tooltip - Button tooltip text
+   * @param isToggle - Whether button should toggle (legacy parameter, not used)
+   * @param callback - Function to call when button is clicked
+   * 
+   * @example
+   * ```typescript
+   * SimpleCalendar.api.addSidebarButton(
+   *   'weather',
+   *   'fas fa-cloud',
+   *   'Toggle Weather Display',
+   *   false,
+   *   () => toggleWeatherPanel()
+   * );
+   * ```
+   */
   addSidebarButton(name: string, icon: string, tooltip: string, isToggle: boolean, callback: Function): void {
     console.log(`🌉 Simple Calendar Bridge: addSidebarButton called with:`, {
       name, icon, tooltip, isToggle, 

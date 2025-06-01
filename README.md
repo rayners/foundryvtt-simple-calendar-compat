@@ -4,22 +4,23 @@ A Foundry VTT module that provides Simple Calendar API compatibility for modern 
 
 ## Overview
 
-This module acts as a bridge between modules that expect the Simple Calendar API and modern calendar implementations. Instead of each calendar module needing to implement Simple Calendar compatibility, this dedicated bridge module handles the translation layer.
+This module acts as a bridge between modules that expect the Simple Calendar API and modern calendar implementations. The bridge provides **100% Simple Calendar compatibility** while maintaining complete separation from the underlying calendar system. This allows calendar modules to focus on their core functionality without needing Simple Calendar-specific code.
 
 ## Features
 
-- **Universal Compatibility**: Works with any supported calendar module
-- **Complete API Coverage**: Implements the full Simple Calendar API surface
-- **Automatic Detection**: Detects available calendar modules and adapts automatically  
-- **Hook Bridging**: Translates between different module hook systems
+- **Complete API Coverage**: Implements the full Simple Calendar API surface (50+ methods)
+- **Automatic Detection**: Uses S&S Integration Interface for seamless integration
+- **Hook Bridging**: Translates between S&S hooks and Simple Calendar hook formats
+- **CSS/DOM Compatibility**: Dynamically adds all required Simple Calendar CSS classes and DOM structure
 - **Zero Configuration**: Just install and it works
-- **Clean Architecture**: Keeps calendar modules focused on their core functionality
+- **Clean Architecture**: Complete separation of concerns between calendar and compatibility layers
+- **Robust Error Handling**: Graceful degradation with comprehensive fallbacks
 
 ## Supported Calendar Modules
 
-- ✅ **Seasons & Stars** - Full support
-- 🔄 **About Time** - Planned
-- 🔄 **Other calendar modules** - Extensible architecture
+- ✅ **Seasons & Stars v2.0+** - Full support via Integration Interface
+- ✅ **Seasons & Stars v1.x** - Legacy support via wrapper
+- 🔄 **Other calendar modules** - Extensible architecture for future integrations
 
 ## Compatible Modules
 
@@ -48,36 +49,61 @@ The bridge works automatically - no configuration needed! Once installed:
 
 ## For Developers
 
-### Adding Calendar Provider Support
+### Architecture Overview
 
-To add support for your calendar module:
+The bridge uses a **Integration Interface** pattern rather than provider abstraction. This provides cleaner separation and better error handling.
 
-1. Implement the `CalendarProvider` interface:
+### Adding Calendar Module Support
+
+To add support for your calendar module, implement the S&S Integration Interface pattern:
+
+1. **Expose Integration Interface** in your calendar module:
 
 ```typescript
-import { BaseCalendarProvider } from './providers/base-provider';
+// In your calendar module's main setup
+Hooks.once('ready', () => {
+  (game as any).yourCalendar = {
+    integration: {
+      isAvailable: true,
+      version: '2.1.0',
+      api: {
+        getCurrentDate(): CalendarDate { /* implementation */ },
+        worldTimeToDate(timestamp: number): CalendarDate { /* implementation */ },
+        dateToWorldTime(date: CalendarDate): number { /* implementation */ },
+        formatDate(date: CalendarDate, options?: any): string { /* implementation */ },
+        getActiveCalendar(): Calendar { /* implementation */ },
+        // ... other API methods
+      },
+      widgets: {
+        main: yourMainWidget,
+        mini: yourMiniWidget,
+        grid: yourGridWidget
+      },
+      hooks: {
+        onDateChanged(callback: Function): void { /* implementation */ }
+      }
+    }
+  };
+});
+```
 
-export class YourCalendarProvider extends BaseCalendarProvider {
-  readonly name = 'Your Calendar';
-  readonly version = '1.0.0';
-  
-  static isAvailable(): boolean {
-    return !!(game.modules.get('your-calendar')?.active);
-  }
-  
-  getCurrentDate(): CalendarDate | null {
-    // Implementation
-  }
-  
-  // ... other required methods
+2. **Add Bridge Detection** in the bridge `main.ts`:
+
+```typescript
+// Add after Seasons & Stars detection
+const yourCalendarIntegration = (game as any).yourCalendar?.integration;
+if (yourCalendarIntegration?.isAvailable) {
+  return new YourCalendarIntegrationProvider(yourCalendarIntegration);
 }
 ```
 
-2. Add detection logic in `main.ts`:
+3. **Create Integration Provider** for your calendar:
 
 ```typescript
-if (YourCalendarProvider.isAvailable()) {
-  return new YourCalendarProvider();
+export class YourCalendarIntegrationProvider implements CalendarProvider {
+  constructor(private yourCalendar: YourCalendarIntegration) {}
+  
+  // Implement CalendarProvider interface using yourCalendar.api methods
 }
 ```
 
@@ -94,29 +120,49 @@ The bridge implements the complete Simple Calendar API:
 
 ## Architecture
 
+The new architecture achieves complete separation of concerns:
+
+```mermaid
+graph TD
+    A[SmallTime] --> D[Simple Calendar API<br/>Compatibility Bridge]
+    B[Simple Weather] --> D
+    C[Other Modules<br/>expecting SC API] --> D
+    
+    D --> E[Seasons & Stars<br/>Integration Interface]
+    
+    subgraph "Bridge Responsibilities"
+        D1[100% SC Authority]
+        D2[CSS/DOM Compatibility] 
+        D3[Hook Translation]
+        D4[Format Conversion]
+    end
+    
+    subgraph "S&S Core"
+        E1[Zero SC Knowledge]
+        E2[Generic APIs Only]
+        E3[Clean Architecture]
+        E4[Independent Evolution]
+    end
+    
+    D -.-> D1
+    D -.-> D2
+    D -.-> D3
+    D -.-> D4
+    
+    E -.-> E1
+    E -.-> E2
+    E -.-> E3
+    E -.-> E4
 ```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   SmallTime     │    │  Simple Weather  │    │  Other Modules  │
-│                 │    │                  │    │                 │
-└─────────┬───────┘    └─────────┬────────┘    └─────────┬───────┘
-          │                      │                       │
-          └──────────────────────┼───────────────────────┘
-                                 │
-                    ┌────────────▼─────────────┐
-                    │                          │
-                    │  Simple Calendar API     │
-                    │  Compatibility Bridge    │
-                    │                          │
-                    └────────────┬─────────────┘
-                                 │
-          ┌──────────────────────┼───────────────────────┐
-          │                      │                       │
-          ▼                      ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│ Seasons & Stars │    │   About Time    │    │ Your Calendar   │
-│                 │    │                 │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
+
+### Key Architectural Principles
+
+- **Bridge Authority**: Bridge handles 100% of Simple Calendar compatibility requirements
+- **Clean Separation**: Seasons & Stars has zero Simple Calendar knowledge  
+- **Generic APIs**: S&S provides reusable APIs for any calendar integration
+- **Format Translation**: Bridge handles all data format conversions (0-based ↔ 1-based)
+- **CSS/DOM Authority**: Bridge dynamically adds all required Simple Calendar classes
+- **Hook Translation**: Bridge translates between S&S and Simple Calendar hook formats
 
 ## Benefits
 

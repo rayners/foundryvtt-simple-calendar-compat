@@ -24,7 +24,6 @@ export interface SimpleCalendarDate {
   hour: number;
   minute: number;
   second: number;
-  dayOffset: number;
   sunrise: number;
   sunset: number;
   display: {
@@ -130,6 +129,5 @@ declare global {
       api: any;
       manager: any;
     };
-    aboutTime?: any;
   }
 }
