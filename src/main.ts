@@ -110,7 +110,7 @@ class SimpleCalendarCompatibilityBridge {
       return;
     }
     
-    // Detect available calendar providers
+    // Detect available calendar providers (for backward compatibility)
     this.provider = this.detectCalendarProvider();
     
     if (!this.provider) {
@@ -121,10 +121,10 @@ class SimpleCalendarCompatibilityBridge {
     
     console.log(`🌉 Simple Calendar Compatibility Bridge | Using provider: ${this.provider.name} v${this.provider.version}`);
     
-    // Create API bridge
-    this.api = new SimpleCalendarAPIBridge(this.provider);
+    // Create API bridge - detects integration interface internally
+    this.api = new SimpleCalendarAPIBridge();
     
-    // Create hook bridge
+    // Create hook bridge using provider for compatibility
     this.hookBridge = new HookBridge(this.provider);
     
     // Expose Simple Calendar API
