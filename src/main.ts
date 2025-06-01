@@ -212,7 +212,7 @@ class SimpleCalendarCompatibilityBridge {
     (game as any).simpleCalendarCompat = {
       provider: this.provider,
       api: this.api,
-      version: game.modules.get('foundryvtt-simple-calendar-compat')?.version || '1.0.0'
+      version: game.modules.get('foundryvtt-simple-calendar-compat')?.version || '0.1.0'
     };
     
     console.log('🌉 Simple Calendar Compatibility Bridge | API exposed globally');

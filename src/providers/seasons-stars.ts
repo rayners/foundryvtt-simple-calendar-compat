@@ -11,7 +11,7 @@ export class SeasonsStarsProvider extends BaseCalendarProvider {
   
   constructor() {
     super();
-    this.version = game.modules.get('seasons-and-stars')?.version || '1.0.0';
+    this.version = game.modules.get('seasons-and-stars')?.version || '0.1.0';
   }
   
   static isAvailable(): boolean {
