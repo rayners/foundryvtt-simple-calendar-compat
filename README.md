@@ -26,10 +26,29 @@ This module acts as a bridge between modules that expect the Simple Calendar API
 
 This bridge enables the following modules to work with modern calendar systems:
 
-- **SmallTime** - Time display widget
-- **Simple Weather** - Weather system with calendar integration
+### ✅ **Fully Tested & Supported**
+- **SmallTime** - Time display widget with complete integration
+- **Simple Weather** - Complete weather system with all features:
+  - Sidebar button integration on calendar widgets
+  - Weather data storage in calendar notes (when "Store weather in Simple Calendar notes" is enabled)
+  - Season-based weather using calendar season information
+  - All attachment modes (attached/detached to calendar)
+
+### 🔄 **Expected to Work**
 - **Calendar/Weather** - Advanced weather systems
 - Any module expecting Simple Calendar API
+
+### **Simple Weather Feature Support**
+
+All Simple Weather features work seamlessly:
+
+- ✅ **Weather Generation** - Full climate and season-based weather
+- ✅ **Temperature Display** - Celsius/Fahrenheit with season adjustments
+- ✅ **Calendar Integration** - Sidebar buttons on all calendar widgets
+- ✅ **Weather Persistence** - Complete note storage system for historical weather
+- ✅ **Manual Weather Control** - All weather override capabilities
+- ✅ **Effect Integration** - Audio/visual weather effects
+- ✅ **Scene Integration** - Weather overlay on scenes
 
 ## Installation
 
@@ -114,9 +133,15 @@ The bridge implements the complete Simple Calendar API:
 - **Core Methods**: `timestamp()`, `timestampToDate()`, `getCurrentDate()`
 - **Time Advancement**: `advanceDays()`, `addMonths()`, `setTime()`
 - **Formatting**: `formatDateTime()`, `dateToTimestamp()`
+- **Note Management**: `getNotesForDay()`, `addNote()`, `removeNote()` with full flag support
+- **Icon Constants**: `Icons.Fall`, `Icons.Winter`, `Icons.Spring`, `Icons.Summer`
 - **SmallTime Integration**: Clock controls, display formatting
-- **Simple Weather Integration**: Sidebar buttons, sunrise/sunset
-- **Hook System**: All Simple Calendar hooks with proper data
+- **Simple Weather Integration**: 
+  - Sidebar buttons on all calendar widgets
+  - Complete weather data persistence in calendar notes
+  - Season icon mapping for weather generation
+  - Sunrise/sunset times (configurable)
+- **Hook System**: All Simple Calendar hooks with proper data translation
 
 ## Architecture
 
