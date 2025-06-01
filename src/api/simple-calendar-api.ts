@@ -199,9 +199,9 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
     const monthName = (ssDate.month >= 1 && ssDate.month <= monthNames.length) ? 
       monthNames[ssDate.month - 1] : 'Unknown Month';
     
-    // Validate weekday for safe array access  
-    const weekdayName = (ssDate.weekday >= 0 && ssDate.weekday < weekdayNames.length) ?
-      weekdayNames[ssDate.weekday] : 'Unknown Day';
+    // Validate weekday for safe array access (S&S uses 1-based weekdays)
+    const weekdayName = (ssDate.weekday >= 1 && ssDate.weekday <= weekdayNames.length) ?
+      weekdayNames[ssDate.weekday - 1] : 'Unknown Day';
     
     const formattedDate = this.seasonsStars.api.formatDate(ssDate, { includeTime: false });
     const formattedTime = this.seasonsStars.api.formatDate(ssDate, { timeOnly: true });
@@ -213,9 +213,9 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
     
     return {
       year: ssDate.year,
-      month: ssDate.month,     // Keep 1-based - Simple Weather expects 1-based values
-      day: ssDate.day,         // Keep 1-based - Simple Weather expects 1-based values
-      dayOfTheWeek: ssDate.weekday,
+      month: ssDate.month - 1,     // Convert 1-based to 0-based for SC compatibility
+      day: ssDate.day - 1,         // Convert 1-based to 0-based for SC compatibility
+      dayOfTheWeek: ssDate.weekday - 1,  // Convert 1-based to 0-based for SC compatibility
       hour: ssDate.time?.hour || 0,
       minute: ssDate.time?.minute || 0,
       second: ssDate.time?.second || 0,
@@ -349,13 +349,14 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
   
   /**
    * Convert Simple Calendar format to S&S CalendarDate format
+   * CRITICAL: Simple Calendar uses 0-based months/days, S&S uses 1-based
    */
   private convertSCToSSFormat(scDate: any): CalendarDate {
     return {
       year: scDate.year,
-      month: scDate.month || 1,        // Already 1-based
-      day: scDate.day || 1,            // Already 1-based
-      weekday: scDate.dayOfTheWeek || scDate.weekday || 0,
+      month: (scDate.month || 0) + 1,  // Convert 0-based to 1-based
+      day: (scDate.day || 0) + 1,      // Convert 0-based to 1-based
+      weekday: (scDate.dayOfTheWeek || scDate.weekday || 0) + 1, // Convert 0-based to 1-based
       time: {
         hour: scDate.hour || 0,
         minute: scDate.minute || 0,
@@ -441,6 +442,9 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
       // Try to add button to mini widget first (preferred for Simple Weather)
       const miniWidget = this.seasonsStars.widgets.mini;
       if (miniWidget) {
+        // Ensure Simple Calendar compatibility DOM structure first
+        this.addSimpleCalendarCompatibility(miniWidget);
+        
         // Check if button already exists to avoid duplicates
         if (!miniWidget.hasSidebarButton(name)) {
           miniWidget.addSidebarButton(name, icon, tooltip, callback);
@@ -453,6 +457,9 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
       // Also try main widget for consistency
       const mainWidget = this.seasonsStars.widgets.main;
       if (mainWidget) {
+        // Ensure Simple Calendar compatibility DOM structure first
+        this.addSimpleCalendarCompatibility(mainWidget);
+        
         if (!mainWidget.hasSidebarButton(name)) {
           mainWidget.addSidebarButton(name, icon, tooltip, callback);
           console.log(`🌟 Successfully added "${name}" button to main widget via S&S API`);
@@ -464,6 +471,9 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
       // Also try grid widget if available
       const gridWidget = this.seasonsStars.widgets.grid;
       if (gridWidget) {
+        // Ensure Simple Calendar compatibility DOM structure first
+        this.addSimpleCalendarCompatibility(gridWidget);
+        
         if (!gridWidget.hasSidebarButton(name)) {
           gridWidget.addSidebarButton(name, icon, tooltip, callback);
           console.log(`🌟 Successfully added "${name}" button to grid widget via S&S API`);
@@ -485,6 +495,84 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
   }
   
   /**
+   * Add Simple Calendar compatibility DOM structure and CSS classes to S&S widgets
+   * This ensures Simple Weather and other SC-dependent modules can find required elements
+   */
+  private addSimpleCalendarCompatibility(widget: BridgeCalendarWidget): void {
+    try {
+      const widgetInstance = widget.getInstance();
+      if (!widgetInstance?.element) {
+        console.warn('🌉 Cannot add SC compatibility: widget element not available');
+        return;
+      }
+      
+      const $widget = $(widgetInstance.element);
+      
+      // Check if already processed to avoid duplicate work
+      if ($widget.hasClass('simple-calendar-compat-processed')) {
+        return;
+      }
+      
+      console.log('🌉 Adding Simple Calendar compatibility DOM structure to widget');
+      
+      // Add required Simple Calendar CSS classes and ID
+      $widget.attr('id', 'fsc-if');
+      $widget.addClass('fsc-if simple-calendar-compat-processed');
+      
+      // Ensure .window-content wrapper exists (required for Simple Weather)
+      let $windowContent = $widget.find('.window-content');
+      if (!$windowContent.length) {
+        // Wrap existing content in window-content div
+        $widget.wrapInner('<div class="window-content"></div>');
+        $windowContent = $widget.find('.window-content');
+      }
+      
+      // Add Simple Calendar tab structure required for Simple Weather positioning
+      let $tabWrapper = $windowContent.find('.fsc-of');
+      if (!$tabWrapper.length) {
+        $tabWrapper = $(`
+          <div class="fsc-of fsc-d" style="display: none; flex-direction: column; position: relative;">
+            <!-- Simple Weather positioning anchor - ensures proper attachment -->
+            <div class="sc-right" style="margin-left: auto; position: relative;">
+              <!-- Container for Simple Weather attached mode -->
+              <div id="swr-fsc-container" style="position: relative; z-index: 100; max-width: 300px; margin-top: 8px;">
+                <!-- Simple Weather will inject its content here -->
+              </div>
+            </div>
+          </div>
+        `);
+        $windowContent.append($tabWrapper);
+      }
+      
+      // Add extended tab state toggle function (required by Simple Weather)
+      if (!$widget.data('sc-toggle-attached')) {
+        $widget.data('sc-toggle-attached', true);
+        
+        // Add global function for Simple Weather to toggle tab state
+        (window as any).toggleExtendedCalendar = function() {
+          const $tabPanel = $widget.find('.fsc-of');
+          if ($tabPanel.hasClass('fsc-d')) {
+            // Open tab
+            $tabPanel.removeClass('fsc-d').addClass('fsc-c');
+            $tabPanel.css('display', 'flex');
+            console.log('🌉 Simple Calendar compatibility: Extended calendar opened');
+          } else {
+            // Close tab  
+            $tabPanel.removeClass('fsc-c').addClass('fsc-d');
+            $tabPanel.css('display', 'none');
+            console.log('🌉 Simple Calendar compatibility: Extended calendar closed');
+          }
+        };
+      }
+      
+      console.log('🌉 Simple Calendar compatibility DOM structure added successfully');
+      
+    } catch (error) {
+      console.error('🌉 Failed to add Simple Calendar compatibility:', error);
+    }
+  }
+  
+  /**
    * Fallback method: Add button via DOM manipulation (may be cleared on re-render)
    */
   private addButtonToWidgetsViaDOM(name: string, icon: string, tooltip: string, callback: Function): void {
@@ -497,6 +585,9 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
       const buttonId = `simple-weather-button-${name.toLowerCase().replace(/\s+/g, '-')}`;
       
       console.log(`🌟 Processing widget via DOM:`, widget.className);
+      
+      // Add Simple Calendar compatibility DOM structure for fallback mode
+      this.addSimpleCalendarCompatibilityViaDOM($widget);
       
       // Don't add if already exists
       if ($widget.find(`#${buttonId}`).length > 0) {
@@ -561,6 +652,76 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
       
       console.log(`🌟 Added "${name}" button to widget successfully via DOM`);
     });
+  }
+  
+  /**
+   * Add Simple Calendar compatibility DOM structure via direct DOM manipulation
+   * Used when S&S widget API is not available
+   */
+  private addSimpleCalendarCompatibilityViaDOM($widget: JQuery): void {
+    try {
+      // Check if already processed to avoid duplicate work
+      if ($widget.hasClass('simple-calendar-compat-processed')) {
+        return;
+      }
+      
+      console.log('🌉 Adding Simple Calendar compatibility DOM structure via DOM manipulation');
+      
+      // Add required Simple Calendar CSS classes and ID
+      $widget.attr('id', 'fsc-if');
+      $widget.addClass('fsc-if simple-calendar-compat-processed');
+      
+      // Ensure .window-content wrapper exists (required for Simple Weather)
+      let $windowContent = $widget.find('.window-content');
+      if (!$windowContent.length) {
+        // Wrap existing content in window-content div
+        $widget.wrapInner('<div class="window-content"></div>');
+        $windowContent = $widget.find('.window-content');
+      }
+      
+      // Add Simple Calendar tab structure required for Simple Weather positioning
+      let $tabWrapper = $windowContent.find('.fsc-of');
+      if (!$tabWrapper.length) {
+        $tabWrapper = $(`
+          <div class="fsc-of fsc-d" style="display: none; flex-direction: column; position: relative;">
+            <!-- Simple Weather positioning anchor - ensures proper attachment -->
+            <div class="sc-right" style="margin-left: auto; position: relative;">
+              <!-- Container for Simple Weather attached mode -->
+              <div id="swr-fsc-container" style="position: relative; z-index: 100; max-width: 300px; margin-top: 8px;">
+                <!-- Simple Weather will inject its content here -->
+              </div>
+            </div>
+          </div>
+        `);
+        $windowContent.append($tabWrapper);
+      }
+      
+      // Add extended tab state toggle function (required by Simple Weather)
+      if (!$widget.data('sc-toggle-attached')) {
+        $widget.data('sc-toggle-attached', true);
+        
+        // Add global function for Simple Weather to toggle tab state
+        (window as any).toggleExtendedCalendar = function() {
+          const $tabPanel = $widget.find('.fsc-of');
+          if ($tabPanel.hasClass('fsc-d')) {
+            // Open tab
+            $tabPanel.removeClass('fsc-d').addClass('fsc-c');
+            $tabPanel.css('display', 'flex');
+            console.log('🌉 Simple Calendar compatibility: Extended calendar opened');
+          } else {
+            // Close tab  
+            $tabPanel.removeClass('fsc-c').addClass('fsc-d');
+            $tabPanel.css('display', 'none');
+            console.log('🌉 Simple Calendar compatibility: Extended calendar closed');
+          }
+        };
+      }
+      
+      console.log('🌉 Simple Calendar compatibility DOM structure added via DOM manipulation');
+      
+    } catch (error) {
+      console.error('🌉 Failed to add Simple Calendar compatibility via DOM:', error);
+    }
   }
   
   // Note management APIs (basic implementation)

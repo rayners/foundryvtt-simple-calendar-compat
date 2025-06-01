@@ -148,7 +148,7 @@ export class HookBridge {
         year: currentDate.year,
         month: currentDate.month - 1, // 0-based for SC compatibility
         day: currentDate.day - 1,     // 0-based for SC compatibility
-        dayOfTheWeek: currentDate.weekday,
+        dayOfTheWeek: currentDate.weekday - 1, // 0-based for SC compatibility
         hour: currentDate.time?.hour || 0,
         minute: currentDate.time?.minute || 0,
         second: currentDate.time?.second || 0,
