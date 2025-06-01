@@ -1,0 +1,60 @@
+{
+  "name": "foundryvtt-simple-calendar-compat",
+  "version": "1.0.0",
+  "description": "Simple Calendar API compatibility bridge for modern calendar modules",
+  "type": "module",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "foundry-vtt",
+    "calendar",
+    "compatibility",
+    "simple-calendar",
+    "bridge"
+  ],
+  "author": "Rayners",
+  "license": "MIT",
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^11.1.5",
+    "@types/node": "^20.8.0",
+    "@typescript-eslint/eslint-plugin": "^6.7.0",
+    "@typescript-eslint/parser": "^6.7.0",
+    "eslint": "^8.50.0",
+    "rimraf": "^5.0.5",
+    "rollup": "^4.0.0",
+    "tslib": "^2.6.2",
+    "typescript": "^5.2.2",
+    "vitest": "^0.34.6"
+  },
+  "peerDependencies": {
+    "seasons-and-stars": "*"
+  },
+  "peerDependenciesMeta": {
+    "seasons-and-stars": {
+      "optional": true
+    }
+  },
+  "files": [
+    "dist/",
+    "module.json",
+    "languages/",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rayners/foundryvtt-simple-calendar-compat.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rayners/foundryvtt-simple-calendar-compat/issues"
+  },
+  "homepage": "https://github.com/rayners/foundryvtt-simple-calendar-compat#readme"
+}
