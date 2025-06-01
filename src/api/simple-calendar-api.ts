@@ -261,6 +261,10 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
     const weekdayName = (ssDate.weekday >= 1 && ssDate.weekday <= weekdayNames.length) ?
       weekdayNames[ssDate.weekday - 1] : 'Unknown Day';
     
+    // Ensure we have valid string values
+    const safeWeekdayName = weekdayName || 'Unknown Day';
+    const safeMonthName = monthName || 'Unknown Month';
+    
     const formattedDate = this.seasonsStars.api.formatDate(ssDate, { includeTime: false });
     const formattedTime = this.seasonsStars.api.formatDate(ssDate, { timeOnly: true });
     
@@ -283,9 +287,9 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
       display: {
         date: formattedDate,
         time: formattedTime,
-        weekday: weekdayName,
+        weekday: safeWeekdayName,
         day: ssDate.day.toString(),
-        monthName: monthName,
+        monthName: safeMonthName,
         month: ssDate.month.toString(),
         year: ssDate.year.toString(),
         daySuffix: this.getOrdinalSuffix(ssDate.day),
@@ -829,10 +833,10 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
       
       console.log(`🌉 Simple Calendar Bridge: getNotesForDay(${year}, ${month}, ${day}) -> storage key: ${storageKey}`);
       
-      // Find all journal entries with Simple Calendar note flags for this date
+      // Find all journal entries with S&S calendar note flags for this date
       const calendarNotes = game.journal.filter((journal: any) => {
-        const noteFlags = journal.flags?.['simple-calendar-compat'];
-        if (!noteFlags?.isCalendarNote) return false;
+        const noteFlags = journal.flags?.['seasons-and-stars'];
+        if (!noteFlags?.calendarNote) return false;
         
         // Check if this note is for the requested date
         if (noteFlags.dateKey === storageKey) {
@@ -840,11 +844,12 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
           return true;
         }
         
-        // Legacy compatibility: check old startDate format
+        // Legacy compatibility: check old startDate format (for bridge-created notes)
         if (noteFlags.startDate) {
           const startDate = noteFlags.startDate;
-          if (startDate.year === year && startDate.month === month && startDate.day === day) {
-            console.log(`🌉 Simple Calendar Bridge: Found legacy note for ${storageKey}:`, journal.name);
+          // Note: S&S uses 1-based dates, but we're comparing with 0-based month/day from Simple Calendar API
+          if (startDate.year === year && (startDate.month - 1) === month && (startDate.day - 1) === day) {
+            console.log(`🌉 Simple Calendar Bridge: Found S&S note for ${storageKey}:`, journal.name);
             return true;
           }
         }
@@ -888,28 +893,76 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
       // Create storage key for date-based retrieval (convert 0-based to 1-based)
       const dateKey = `${startDate.year}-${(startDate.month || 0) + 1}-${(startDate.day || 0) + 1}`;
       
+      // Get or create the calendar notes folder
+      const noteFolder = await this.getOrCreateNotesFolder();
+      
       const journal = await JournalEntry.create({
         name: title,
-        pages: [{
-          type: 'text',
-          text: {
-            content: content,
-            format: 1 // CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML
-          }
-        }],
+        folder: noteFolder.id,
         flags: {
-          'simple-calendar-compat': {
-            isCalendarNote: true,
+          // Create S&S-compatible notes only - S&S storage will index these properly
+          'seasons-and-stars': {
+            calendarNote: true,
+            version: '1.0',
             dateKey: dateKey,
-            startDate: startDate,
-            endDate: endDate,
+            startDate: {
+              year: (startDate.year || 0),
+              month: (startDate.month || 0) + 1, // Convert back to 1-based for S&S
+              day: (startDate.day || 0) + 1,     // Convert back to 1-based for S&S
+              hour: startDate.hour || 0,
+              minute: startDate.minute || 0,
+              second: startDate.second || 0
+            },
+            endDate: endDate ? {
+              year: (endDate.year || 0),
+              month: (endDate.month || 0) + 1,   // Convert back to 1-based for S&S
+              day: (endDate.day || 0) + 1,       // Convert back to 1-based for S&S
+              hour: endDate.hour || 0,
+              minute: endDate.minute || 0,
+              second: endDate.second || 0
+            } : undefined,
             allDay: allDay,
+            calendarId: 'seasons-and-stars', // Use default S&S calendar
+            category: 'general', // Default category
+            tags: [],
+            created: Date.now(),
+            modified: Date.now()
+          },
+          // Optional: Bridge tracking flags for internal use (separate from S&S)
+          'foundryvtt-simple-calendar-compat': {
+            bridgeCreated: true,
+            originalFormat: {
+              startDate: startDate,
+              endDate: endDate
+            },
             created: Date.now()
           }
         }
       });
       
+      if (!journal) {
+        throw new Error('Failed to create journal entry');
+      }
+      
+      // Create content page using v13 pages system - match Simple Calendar's "Details" page name
+      await journal.createEmbeddedDocuments("JournalEntryPage", [{
+        type: 'text',
+        name: 'Details', // Always use "Details" like original Simple Calendar
+        text: { 
+          content: content || '',
+          format: 1 // CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML
+        }
+      }]);
+      
       console.log('🌉 Simple Calendar Bridge: Created calendar note:', journal.name, 'with dateKey:', dateKey);
+      
+      // Force S&S storage system to rebuild its index to include new notes
+      // This uses S&S's existing public API without making S&S aware of the bridge
+      if (game.seasonsStars?.notes?.storage) {
+        game.seasonsStars.notes.storage.rebuildIndex();
+        console.log('🌉 Simple Calendar Bridge: Triggered S&S storage reindex');
+      }
+      
       return journal;
       
     } catch (error) {
@@ -1031,5 +1084,52 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
         icon: 'winter'
       }
     };
+  }
+
+  /**
+   * Get or create the calendar notes folder
+   */
+  private async getOrCreateNotesFolder(): Promise<any> {
+    // Try to find existing folder - check BOTH flag types to prevent duplicates
+    const existingFolder = game.folders?.find((f: any) => 
+      f.type === 'JournalEntry' && (
+        // Check for bridge flags
+        f.getFlag?.('foundryvtt-simple-calendar-compat', 'notesFolder') === true ||
+        // Check for S&S flags (in case S&S created the folder first)
+        f.getFlag?.('seasons-and-stars', 'notesFolder') === true
+      )
+    );
+
+    if (existingFolder) {
+      // If found S&S folder, add bridge flag for future detection
+      if (!existingFolder.getFlag('foundryvtt-simple-calendar-compat', 'notesFolder')) {
+        await existingFolder.setFlag('foundryvtt-simple-calendar-compat', 'notesFolder', true);
+        console.log('🌉 Simple Calendar Bridge: Added bridge flag to existing S&S notes folder');
+      }
+      return existingFolder;
+    }
+
+    // Create new folder with BOTH flag types for compatibility
+    const folder = await (globalThis as any).Folder.create({
+      name: 'Calendar Notes',
+      type: 'JournalEntry',
+      flags: {
+        'foundryvtt-simple-calendar-compat': {
+          notesFolder: true,
+          version: '1.0'
+        },
+        'seasons-and-stars': {
+          notesFolder: true,
+          version: '1.0'
+        }
+      }
+    });
+
+    if (!folder) {
+      throw new Error('Failed to create notes folder');
+    }
+
+    console.log('🌉 Simple Calendar Bridge: Created Calendar Notes folder with unified flags');
+    return folder;
   }
 }

@@ -16,6 +16,14 @@ declare global {
   const ui: UI;
   const Hooks: typeof HooksManager;
   const CONFIG: Config;
+  const JournalEntry: JournalEntryStatic;
+  const CONST: {
+    DOCUMENT_OWNERSHIP_LEVELS: {
+      NONE: number;
+      OBSERVER: number;
+      OWNER: number;
+    };
+  };
   
   // jQuery globals provided by @types/jquery
   
@@ -116,9 +124,18 @@ interface JournalEntry {
   content: string;
   folder?: string;
   pages: Collection<JournalEntryPage>;
+  flags?: Record<string, any>;
+  ownership?: Record<string, number>;
   
   update(data: any): Promise<JournalEntry>;
   delete(): Promise<JournalEntry>;
+  setFlag(module: string, key: string, value: any): Promise<JournalEntry>;
+  getFlag(module: string, key: string): any;
+  createEmbeddedDocuments(type: string, data: any[]): Promise<any[]>;
+}
+
+interface JournalEntryStatic {
+  create(data: any): Promise<JournalEntry>;
 }
 
 interface JournalEntryPage {

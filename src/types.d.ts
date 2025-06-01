@@ -24,6 +24,7 @@ export interface SimpleCalendarDate {
   hour: number;
   minute: number;
   second: number;
+  dayOffset: number;  // Additional offset for compatibility
   sunrise: number;
   sunset: number;
   display: {
