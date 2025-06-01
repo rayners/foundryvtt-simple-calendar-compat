@@ -1,17 +1,163 @@
 /**
- * Simple Calendar API implementation that bridges to modern calendar providers
+ * Simple Calendar API implementation that bridges to Seasons & Stars Integration Interface
  */
 
-import type { CalendarProvider, SimpleCalendarAPI, SimpleCalendarDate } from '../types';
+import type { SimpleCalendarAPI, SimpleCalendarDate } from '../types';
+
+// Import S&S Integration interface types (matching bridge-integration.ts)
+interface SeasonsStarsIntegration {
+  readonly isAvailable: boolean;
+  readonly version: string;
+  readonly api: SeasonsStarsAPI;
+  readonly widgets: SeasonsStarsWidgets;
+  readonly hooks: SeasonsStarsHooks;
+  
+  hasFeature(feature: string): boolean;
+  getFeatureVersion(feature: string): string | null;
+}
+
+interface SeasonsStarsAPI {
+  getCurrentDate(calendarId?: string): CalendarDate;
+  worldTimeToDate(timestamp: number, calendarId?: string): CalendarDate;
+  dateToWorldTime(date: CalendarDate, calendarId?: string): number;
+  formatDate(date: CalendarDate, options?: any): string;
+  getActiveCalendar(): any;
+  setActiveCalendar(calendarId: string): Promise<void>;
+  getAvailableCalendars(): string[];
+  getMonthNames(calendarId?: string): string[];
+  getWeekdayNames(calendarId?: string): string[];
+  advanceDays?(days: number, calendarId?: string): Promise<void>;
+  advanceHours?(hours: number, calendarId?: string): Promise<void>;
+  advanceMinutes?(minutes: number, calendarId?: string): Promise<void>;
+  getSunriseSunset?(date: CalendarDate, calendarId?: string): { sunrise: number; sunset: number };
+  getSeasonInfo?(date: CalendarDate, calendarId?: string): { name: string; icon: string };
+}
+
+interface SeasonsStarsWidgets {
+  readonly main: BridgeCalendarWidget | null;
+  readonly mini: BridgeCalendarWidget | null;
+  readonly grid: BridgeCalendarWidget | null;
+  
+  getPreferredWidget(preference?: WidgetPreference): BridgeCalendarWidget | null;
+  onWidgetChange(callback: (widgets: SeasonsStarsWidgets) => void): void;
+  offWidgetChange(callback: (widgets: SeasonsStarsWidgets) => void): void;
+}
+
+interface BridgeCalendarWidget {
+  readonly id: string;
+  readonly isVisible: boolean;
+  
+  addSidebarButton(name: string, icon: string, tooltip: string, callback: Function): void;
+  removeSidebarButton(name: string): void;
+  hasSidebarButton(name: string): boolean;
+  getInstance(): any;
+}
+
+interface SeasonsStarsHooks {
+  onDateChanged(callback: (event: DateChangeEvent) => void): void;
+  onCalendarChanged(callback: (event: CalendarChangeEvent) => void): void;
+  onReady(callback: (event: ReadyEvent) => void): void;
+  off(hookName: string, callback: Function): void;
+}
+
+interface CalendarDate {
+  year: number;
+  month: number;  // 1-based
+  day: number;    // 1-based
+  weekday: number;
+  time?: {
+    hour: number;
+    minute: number;
+    second: number;
+  };
+}
+
+interface DateChangeEvent {
+  newDate: CalendarDate;
+  oldDate: CalendarDate;
+  worldTime: number;
+  calendarId: string;
+}
+
+interface CalendarChangeEvent {
+  newCalendarId: string;
+  oldCalendarId: string;
+  calendar: any;
+}
+
+interface ReadyEvent {
+  api: SeasonsStarsAPI;
+  widgets: SeasonsStarsWidgets;
+  version: string;
+}
+
+enum WidgetPreference {
+  MAIN = 'main',
+  MINI = 'mini',
+  GRID = 'grid',
+  ANY = 'any'
+}
 
 export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
-  private provider: CalendarProvider;
+  private seasonsStars: SeasonsStarsIntegration | null = null;
   private clockRunning = false;
   public sidebarButtons: Array<{name: string, icon: string, callback: Function, tooltip?: string, isToggle?: boolean}> = [];
   
-  constructor(provider: CalendarProvider) {
-    this.provider = provider;
-    console.log(`Simple Calendar API bridging to ${provider.name} v${provider.version}`);
+  constructor(seasonsStarsIntegration?: SeasonsStarsIntegration) {
+    this.seasonsStars = seasonsStarsIntegration || this.detectSeasonsStars();
+    
+    if (this.seasonsStars) {
+      console.log(`Simple Calendar API bridging to Seasons & Stars v${this.seasonsStars.version} via Integration Interface`);
+      this.setupHookBridging();
+    } else {
+      console.warn('Simple Calendar API Bridge: No Seasons & Stars integration available, using fallback mode');
+    }
+  }
+  
+  /**
+   * Detect Seasons & Stars integration
+   */
+  private detectSeasonsStars(): SeasonsStarsIntegration | null {
+    try {
+      // Try S&S integration interface first (v2.0+)
+      const integration = (game as any).seasonsStars?.integration;
+      if (integration && integration.isAvailable) {
+        return integration;
+      }
+      
+      // Try static detection method
+      if ((window as any).SeasonsStars?.integration?.detect) {
+        const detected = (window as any).SeasonsStars.integration.detect();
+        if (detected && detected.isAvailable) {
+          return detected;
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Failed to detect S&S integration:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Setup hook bridging to translate S&S events to Simple Calendar format
+   */
+  private setupHookBridging(): void {
+    if (!this.seasonsStars) return;
+    
+    this.seasonsStars.hooks.onDateChanged((event: DateChangeEvent) => {
+      const scDate = this.convertSSToSCFormat(event.newDate);
+      Hooks.callAll('simple-calendar-date-time-change', {
+        date: scDate,
+        moons: this.getAllMoons(),
+        seasons: this.getAllSeasons()
+      });
+    });
+    
+    this.seasonsStars.hooks.onCalendarChanged((event: CalendarChangeEvent) => {
+      console.log('Bridge: Calendar changed from', event.oldCalendarId, 'to', event.newCalendarId);
+    });
   }
   
   // Core time functions
@@ -21,92 +167,127 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
   
   timestampToDate(timestamp: number): SimpleCalendarDate {
     try {
-      const date = this.provider.worldTimeToDate(timestamp);
+      if (!this.seasonsStars?.api) {
+        return this.createFallbackDate(timestamp);
+      }
       
-      const monthNames = this.provider.getMonthNames();
-      const weekdayNames = this.provider.getWeekdayNames();
-      const sunriseSunset = this.provider.getSunriseSunset?.(date) || { sunrise: 0, sunset: 0 };
-      const seasonInfo = this.provider.getSeasonInfo?.(date) || { icon: 'none', name: 'Unknown' };
-      const yearFormatting = this.provider.getYearFormatting?.() || { prefix: '', suffix: '' };
+      // Use S&S API to convert timestamp to date
+      const ssDate = this.seasonsStars.api.worldTimeToDate(timestamp);
       
-      // Validate month for safe array access
-      const monthName = (date.month >= 1 && date.month <= monthNames.length) ? 
-        monthNames[date.month - 1] : 'Unknown Month';
-      
-      // Validate weekday for safe array access  
-      const weekdayName = (date.weekday >= 0 && date.weekday < weekdayNames.length) ?
-        weekdayNames[date.weekday] : 'Unknown Day';
-      
-      const formattedDate = this.provider.formatDate(date, { includeTime: false });
-      const formattedTime = this.provider.formatDate(date, { timeOnly: true });
-      
-      const result = {
-        year: date.year,
-        month: date.month,     // Keep 1-based - Simple Weather expects 1-based values
-        day: date.day,         // Keep 1-based - Simple Weather expects 1-based values
-        dayOfTheWeek: date.weekday,
-        hour: date.time?.hour || 0,
-        minute: date.time?.minute || 0,
-        second: date.time?.second || 0,
-        dayOffset: 0,
-        sunrise: sunriseSunset.sunrise,
-        sunset: sunriseSunset.sunset,
-        display: {
-          date: formattedDate,
-          time: formattedTime,
-          weekday: weekdayName,
-          day: date.day.toString(),
-          monthName: monthName,
-          month: date.month.toString(),
-          year: date.year.toString(),
-          daySuffix: this.getOrdinalSuffix(date.day),
-          yearPrefix: yearFormatting.prefix,
-          yearPostfix: yearFormatting.suffix
-        },
-        weekdays: weekdayNames,
-        showWeekdayHeadings: true,
-        currentSeason: {
-          icon: seasonInfo.icon
-        }
-      };
-      
-      return result;
+      // Convert S&S date format to Simple Calendar format
+      return this.convertSSToSCFormat(ssDate);
     } catch (error) {
       console.error('🌉 Failed to convert timestamp to Simple Calendar date:', error);
-      
-      // Return safe fallback
       return this.createFallbackDate(timestamp);
     }
+  }
+  
+  /**
+   * Convert S&S CalendarDate format to Simple Calendar format
+   */
+  private convertSSToSCFormat(ssDate: CalendarDate): SimpleCalendarDate {
+    if (!this.seasonsStars?.api) {
+      throw new Error('S&S API not available for date conversion');
+    }
+    
+    const monthNames = this.seasonsStars.api.getMonthNames();
+    const weekdayNames = this.seasonsStars.api.getWeekdayNames();
+    const sunriseSunset = this.seasonsStars.api.getSunriseSunset?.(ssDate) || { sunrise: 6, sunset: 18 };
+    const seasonInfo = this.seasonsStars.api.getSeasonInfo?.(ssDate) || { icon: 'none', name: 'Unknown' };
+    
+    // Validate month for safe array access
+    const monthName = (ssDate.month >= 1 && ssDate.month <= monthNames.length) ? 
+      monthNames[ssDate.month - 1] : 'Unknown Month';
+    
+    // Validate weekday for safe array access  
+    const weekdayName = (ssDate.weekday >= 0 && ssDate.weekday < weekdayNames.length) ?
+      weekdayNames[ssDate.weekday] : 'Unknown Day';
+    
+    const formattedDate = this.seasonsStars.api.formatDate(ssDate, { includeTime: false });
+    const formattedTime = this.seasonsStars.api.formatDate(ssDate, { timeOnly: true });
+    
+    // Get calendar metadata for year formatting
+    const activeCalendar = this.seasonsStars.api.getActiveCalendar();
+    const yearPrefix = activeCalendar?.year?.prefix || '';
+    const yearSuffix = activeCalendar?.year?.suffix || '';
+    
+    return {
+      year: ssDate.year,
+      month: ssDate.month,     // Keep 1-based - Simple Weather expects 1-based values
+      day: ssDate.day,         // Keep 1-based - Simple Weather expects 1-based values
+      dayOfTheWeek: ssDate.weekday,
+      hour: ssDate.time?.hour || 0,
+      minute: ssDate.time?.minute || 0,
+      second: ssDate.time?.second || 0,
+      dayOffset: 0,
+      sunrise: sunriseSunset.sunrise,
+      sunset: sunriseSunset.sunset,
+      display: {
+        date: formattedDate,
+        time: formattedTime,
+        weekday: weekdayName,
+        day: ssDate.day.toString(),
+        monthName: monthName,
+        month: ssDate.month.toString(),
+        year: ssDate.year.toString(),
+        daySuffix: this.getOrdinalSuffix(ssDate.day),
+        yearPrefix: yearPrefix,
+        yearPostfix: yearSuffix
+      },
+      weekdays: weekdayNames,
+      showWeekdayHeadings: true,
+      currentSeason: {
+        icon: seasonInfo.icon
+      }
+    };
   }
   
   timestampPlusInterval(timestamp: number, interval: any): number {
     if (!interval) return timestamp;
     
     try {
-      const currentDate = this.provider.worldTimeToDate(timestamp);
+      if (!this.seasonsStars?.api) {
+        // Fallback to simple arithmetic when S&S not available
+        let newTimestamp = timestamp;
+        
+        if (interval.year) newTimestamp += interval.year * 365 * 86400;
+        if (interval.month) newTimestamp += interval.month * 30 * 86400;
+        if (interval.day) newTimestamp += interval.day * 86400;
+        if (interval.hour) newTimestamp += interval.hour * 3600;
+        if (interval.minute) newTimestamp += interval.minute * 60;
+        if (interval.second) newTimestamp += interval.second;
+        
+        return newTimestamp;
+      }
+      
+      // Use S&S API for proper calendar-aware interval calculation
+      const currentDate = this.seasonsStars.api.worldTimeToDate(timestamp);
       let newTimestamp = timestamp;
       
-      // Apply intervals in order
-      if (interval.year) {
-        // Approximate year advancement (365 days)
-        newTimestamp += interval.year * 365 * 86400;
+      // For complex intervals, convert to date, modify, and convert back
+      if (interval.year || interval.month) {
+        const modifiedDate = { ...currentDate };
+        if (interval.year) modifiedDate.year += interval.year;
+        if (interval.month) {
+          modifiedDate.month += interval.month;
+          // Handle month overflow
+          while (modifiedDate.month > 12) {
+            modifiedDate.month -= 12;
+            modifiedDate.year += 1;
+          }
+          while (modifiedDate.month < 1) {
+            modifiedDate.month += 12;
+            modifiedDate.year -= 1;
+          }
+        }
+        newTimestamp = this.seasonsStars.api.dateToWorldTime(modifiedDate);
       }
-      if (interval.month) {
-        // Approximate month advancement (30 days)
-        newTimestamp += interval.month * 30 * 86400;
-      }
-      if (interval.day) {
-        newTimestamp += interval.day * 86400;
-      }
-      if (interval.hour) {
-        newTimestamp += interval.hour * 3600;
-      }
-      if (interval.minute) {
-        newTimestamp += interval.minute * 60;
-      }
-      if (interval.second) {
-        newTimestamp += interval.second;
-      }
+      
+      // Apply time-based intervals directly to timestamp
+      if (interval.day) newTimestamp += interval.day * 86400;
+      if (interval.hour) newTimestamp += interval.hour * 3600;
+      if (interval.minute) newTimestamp += interval.minute * 60;
+      if (interval.second) newTimestamp += interval.second;
       
       return newTimestamp;
     } catch (error) {
@@ -116,26 +297,33 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
   }
   
   getCurrentDate(): SimpleCalendarDate {
-    const currentTimestamp = this.timestamp();
-    return this.timestampToDate(currentTimestamp);
+    try {
+      if (!this.seasonsStars?.api) {
+        const currentTimestamp = this.timestamp();
+        return this.createFallbackDate(currentTimestamp);
+      }
+      
+      // Use S&S API to get current date
+      const ssDate = this.seasonsStars.api.getCurrentDate();
+      return this.convertSSToSCFormat(ssDate);
+    } catch (error) {
+      console.error('Failed to get current date:', error);
+      const currentTimestamp = this.timestamp();
+      return this.createFallbackDate(currentTimestamp);
+    }
   }
   
   formatDateTime(date: any, format?: string): string {
     try {
-      // Convert Simple Calendar format back to provider format
-      const providerDate = {
-        year: date.year,
-        month: date.month || 1,        // Already 1-based
-        day: date.day || 1,            // Already 1-based
-        weekday: date.dayOfTheWeek || date.weekday || 0,
-        time: {
-          hour: date.hour || 0,
-          minute: date.minute || 0,
-          second: date.second || date.seconds || 0
-        }
-      };
+      if (!this.seasonsStars?.api) {
+        return '';
+      }
       
-      return this.provider.formatDate(providerDate);
+      // Convert Simple Calendar format back to S&S CalendarDate format
+      const ssDate = this.convertSCToSSFormat(date);
+      
+      // Use S&S API to format the date
+      return this.seasonsStars.api.formatDate(ssDate);
     } catch (error) {
       console.warn('Failed to format date:', error);
       return '';
@@ -144,33 +332,61 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
   
   dateToTimestamp(date: any): number {
     try {
-      // Convert Simple Calendar format to provider format
-      const providerDate = {
-        year: date.year,
-        month: date.month || 1,
-        day: date.day || 1,
-        weekday: date.dayOfTheWeek || date.weekday || 0,
-        time: {
-          hour: date.hour || 0,
-          minute: date.minute || 0,
-          second: date.second || date.seconds || 0
-        }
-      };
+      if (!this.seasonsStars?.api) {
+        return 0;
+      }
       
-      return this.provider.dateToWorldTime(providerDate);
+      // Convert Simple Calendar format to S&S CalendarDate format
+      const ssDate = this.convertSCToSSFormat(date);
+      
+      // Use S&S API to convert date to timestamp
+      return this.seasonsStars.api.dateToWorldTime(ssDate);
     } catch (error) {
       console.warn('Failed to convert date to timestamp:', error);
       return 0;
     }
   }
   
+  /**
+   * Convert Simple Calendar format to S&S CalendarDate format
+   */
+  private convertSCToSSFormat(scDate: any): CalendarDate {
+    return {
+      year: scDate.year,
+      month: scDate.month || 1,        // Already 1-based
+      day: scDate.day || 1,            // Already 1-based
+      weekday: scDate.dayOfTheWeek || scDate.weekday || 0,
+      time: {
+        hour: scDate.hour || 0,
+        minute: scDate.minute || 0,
+        second: scDate.second || scDate.seconds || 0
+      }
+    };
+  }
+  
   // Time advancement methods
   async advanceDays(days: number): Promise<void> {
-    if (this.provider.advanceDays) {
-      await this.provider.advanceDays(days);
-    } else {
-      throw new Error(`${this.provider.name} does not support time advancement`);
+    if (!this.seasonsStars?.api?.advanceDays) {
+      throw new Error('Time advancement not supported by Seasons & Stars');
     }
+    
+    await this.seasonsStars.api.advanceDays(days);
+  }
+  
+  async advanceHours(hours: number): Promise<void> {
+    if (!this.seasonsStars?.api?.advanceHours) {
+      throw new Error('Hour advancement not supported by Seasons & Stars');
+    }
+    
+    await this.seasonsStars.api.advanceHours(hours);
+  }
+  
+  async advanceMinutes(minutes: number): Promise<void> {
+    if (!this.seasonsStars?.api?.advanceMinutes) {
+      throw new Error('Minute advancement not supported by Seasons & Stars');
+    }
+    
+    await this.seasonsStars.api.advanceMinutes(minutes);
   }
   
   // Legacy support methods
@@ -199,61 +415,73 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
   addSidebarButton(name: string, icon: string, tooltip: string, isToggle: boolean, callback: Function): void {
     console.log(`🌉 Simple Calendar Bridge: addSidebarButton called with:`, {
       name, icon, tooltip, isToggle, 
-      callbackType: typeof callback,
-      stackTrace: new Error().stack?.split('\n').slice(1, 4)
+      callbackType: typeof callback
     });
     
     this.sidebarButtons.push({ name, icon, callback, tooltip, isToggle });
     console.log(`Simple Calendar Bridge: Sidebar button "${name}" registered (tooltip: ${tooltip}, toggle: ${isToggle})`);
-    console.log(`Simple Calendar Bridge: Total sidebar buttons:`, this.sidebarButtons.length);
     
-    // Add the button to existing Seasons & Stars widgets
+    // Add the button to existing Seasons & Stars widgets using S&S API
     this.addButtonToWidgets(name, icon, tooltip, callback);
   }
   
   /**
-   * Add a button to existing Seasons & Stars widgets using proper widget API
+   * Add a button to existing Seasons & Stars widgets using S&S Integration API
    */
-  addButtonToWidgets(name: string, icon: string, tooltip: string, callback: Function): void {
-    console.log(`🌟 Adding weather button "${name}" to existing widgets`);
+  private addButtonToWidgets(name: string, icon: string, tooltip: string, callback: Function): void {
+    console.log(`🌟 Adding weather button "${name}" to S&S widgets via Integration API`);
     
-    // First try to use Seasons & Stars widget API directly (proper method)
-    if ((window as any).SeasonsStars?.CalendarWidget) {
-      console.log(`🌟 Using Seasons & Stars CalendarWidget API for button "${name}"`);
-      try {
-        const CalendarWidgetClass = (window as any).SeasonsStars.CalendarWidget;
-        const calendarWidget = CalendarWidgetClass.getInstance();
-        
-        if (calendarWidget && typeof calendarWidget.addSidebarButton === 'function') {
-          // Check if button already exists to avoid duplicates
-          const existingButton = calendarWidget.sidebarButtons?.find((btn: any) => btn.name === name);
-          if (existingButton) {
-            console.log(`🌟 Button "${name}" already exists in widget's sidebar buttons`);
-            return;
-          }
-          
-          calendarWidget.addSidebarButton(name, icon, tooltip, callback);
-          console.log(`🌟 Successfully added "${name}" button via Seasons & Stars widget API`);
-          return;
-        } else {
-          console.log(`🌟 CalendarWidget instance not available or doesn't support addSidebarButton`);
-          console.log(`🌟 Instance:`, calendarWidget);
-          console.log(`🌟 Has addSidebarButton:`, calendarWidget ? typeof calendarWidget.addSidebarButton : 'N/A');
-        }
-      } catch (error) {
-        console.warn(`🌟 Failed to use Seasons & Stars widget API:`, error);
-      }
-    } else {
-      console.log(`🌟 SeasonsStars.CalendarWidget not available:`, {
-        hasSeasonsStars: !!((window as any).SeasonsStars),
-        hasCalendarWidget: !!((window as any).SeasonsStars?.CalendarWidget)
-      });
+    if (!this.seasonsStars?.widgets) {
+      console.warn('🌟 S&S widgets interface not available, falling back to DOM manipulation');
+      this.addButtonToWidgetsViaDOM(name, icon, tooltip, callback);
+      return;
     }
     
-    // If we can't access the widget API, fall back to DOM manipulation
-    // This will likely get cleared on re-render, but it's better than nothing
-    console.log(`🌟 Falling back to DOM manipulation for button "${name}"`);
-    this.addButtonToWidgetsViaDOM(name, icon, tooltip, callback);
+    try {
+      // Try to add button to mini widget first (preferred for Simple Weather)
+      const miniWidget = this.seasonsStars.widgets.mini;
+      if (miniWidget) {
+        // Check if button already exists to avoid duplicates
+        if (!miniWidget.hasSidebarButton(name)) {
+          miniWidget.addSidebarButton(name, icon, tooltip, callback);
+          console.log(`🌟 Successfully added "${name}" button to mini widget via S&S API`);
+        } else {
+          console.log(`🌟 Button "${name}" already exists on mini widget`);
+        }
+      }
+      
+      // Also try main widget for consistency
+      const mainWidget = this.seasonsStars.widgets.main;
+      if (mainWidget) {
+        if (!mainWidget.hasSidebarButton(name)) {
+          mainWidget.addSidebarButton(name, icon, tooltip, callback);
+          console.log(`🌟 Successfully added "${name}" button to main widget via S&S API`);
+        } else {
+          console.log(`🌟 Button "${name}" already exists on main widget`);
+        }
+      }
+      
+      // Also try grid widget if available
+      const gridWidget = this.seasonsStars.widgets.grid;
+      if (gridWidget) {
+        if (!gridWidget.hasSidebarButton(name)) {
+          gridWidget.addSidebarButton(name, icon, tooltip, callback);
+          console.log(`🌟 Successfully added "${name}" button to grid widget via S&S API`);
+        } else {
+          console.log(`🌟 Button "${name}" already exists on grid widget`);
+        }
+      }
+      
+      if (!miniWidget && !mainWidget && !gridWidget) {
+        console.warn('🌟 No S&S widgets available, falling back to DOM manipulation');
+        this.addButtonToWidgetsViaDOM(name, icon, tooltip, callback);
+      }
+      
+    } catch (error) {
+      console.error(`🌟 Failed to add button via S&S API:`, error);
+      console.log(`🌟 Falling back to DOM manipulation for button "${name}"`);
+      this.addButtonToWidgetsViaDOM(name, icon, tooltip, callback);
+    }
   }
   
   /**
