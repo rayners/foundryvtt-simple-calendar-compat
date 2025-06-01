@@ -4,6 +4,14 @@
 
 import type { SimpleCalendarAPI, SimpleCalendarDate } from '../types';
 
+// Simple Calendar Icon Constants - Required by Simple Weather and other modules
+export const Icons = {
+  Fall: 'fall',
+  Winter: 'winter',
+  Spring: 'spring',
+  Summer: 'summer'
+};
+
 // Import S&S Integration interface types (matching bridge-integration.ts)
 interface SeasonsStarsIntegration {
   readonly isAvailable: boolean;
@@ -799,46 +807,139 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
     }
   }
   
-  // Note management APIs (basic implementation)
-  getNotesForDay(year: number, month: number, day: number): any[] {
-    // Basic implementation - could be enhanced to integrate with journal entries
-    return [];
-  }
+  // Note management APIs (Enhanced for Simple Weather compatibility)
   
-  async addNote(title: string, content: string, startDate: any, endDate: any, allDay: boolean): Promise<any> {
-    if (!game.user?.isGM) return null;
+  /**
+   * Get all calendar notes for a specific day
+   * 
+   * Critical for Simple Weather: Must return JournalEntry documents that can accept flags
+   * Simple Weather stores weather data in flags: `simple-weather.dailyWeather`
+   * 
+   * @param year - Year (Simple Calendar format)
+   * @param month - Month (0-based, Simple Calendar format)  
+   * @param day - Day (0-based, Simple Calendar format)
+   * @returns Array of JournalEntry documents for that date
+   */
+  getNotesForDay(year: number, month: number, day: number): any[] {
+    if (!game.journal) return [];
     
     try {
+      // Convert 0-based Simple Calendar format to 1-based for storage key
+      const storageKey = `${year}-${month + 1}-${day + 1}`;
+      
+      console.log(`🌉 Simple Calendar Bridge: getNotesForDay(${year}, ${month}, ${day}) -> storage key: ${storageKey}`);
+      
+      // Find all journal entries with Simple Calendar note flags for this date
+      const calendarNotes = game.journal.filter((journal: any) => {
+        const noteFlags = journal.flags?.['simple-calendar-compat'];
+        if (!noteFlags?.isCalendarNote) return false;
+        
+        // Check if this note is for the requested date
+        if (noteFlags.dateKey === storageKey) {
+          console.log(`🌉 Simple Calendar Bridge: Found note for ${storageKey}:`, journal.name);
+          return true;
+        }
+        
+        // Legacy compatibility: check old startDate format
+        if (noteFlags.startDate) {
+          const startDate = noteFlags.startDate;
+          if (startDate.year === year && startDate.month === month && startDate.day === day) {
+            console.log(`🌉 Simple Calendar Bridge: Found legacy note for ${storageKey}:`, journal.name);
+            return true;
+          }
+        }
+        
+        return false;
+      });
+      
+      console.log(`🌉 Simple Calendar Bridge: Found ${calendarNotes.length} note(s) for date ${storageKey}`);
+      return calendarNotes;
+      
+    } catch (error) {
+      console.error('🌉 Simple Calendar Bridge: Error in getNotesForDay:', error);
+      return [];
+    }
+  }
+  
+  /**
+   * Add a calendar note
+   * 
+   * Critical for Simple Weather: Must return a JournalEntry that supports setFlag()
+   * Simple Weather calls: newNote?.setFlag(moduleJson.id, SC_NOTE_WEATHER_FLAG_NAME, weatherData)
+   * 
+   * @param title - Note title
+   * @param content - Note content  
+   * @param startDate - Start date (Simple Calendar format with 0-based month/day)
+   * @param endDate - End date (Simple Calendar format)
+   * @param allDay - Whether note is all-day
+   * @returns Promise<JournalEntry> that supports flag operations
+   */
+  async addNote(title: string, content: string, startDate: any, endDate: any, allDay: boolean): Promise<any> {
+    if (!game.user?.isGM) {
+      console.warn('🌉 Simple Calendar Bridge: Only GMs can create calendar notes');
+      return null;
+    }
+    
+    try {
+      console.log('🌉 Simple Calendar Bridge: Creating calendar note:', {
+        title, content, startDate, endDate, allDay
+      });
+      
+      // Create storage key for date-based retrieval (convert 0-based to 1-based)
+      const dateKey = `${startDate.year}-${(startDate.month || 0) + 1}-${(startDate.day || 0) + 1}`;
+      
       const journal = await JournalEntry.create({
         name: title,
-        content: content,
+        pages: [{
+          type: 'text',
+          text: {
+            content: content,
+            format: 1 // CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML
+          }
+        }],
         flags: {
           'simple-calendar-compat': {
             isCalendarNote: true,
+            dateKey: dateKey,
             startDate: startDate,
             endDate: endDate,
-            allDay: allDay
+            allDay: allDay,
+            created: Date.now()
           }
         }
       });
       
+      console.log('🌉 Simple Calendar Bridge: Created calendar note:', journal.name, 'with dateKey:', dateKey);
       return journal;
+      
     } catch (error) {
-      console.error('Failed to create calendar note:', error);
+      console.error('🌉 Simple Calendar Bridge: Failed to create calendar note:', error);
       return null;
     }
   }
   
+  /**
+   * Remove a calendar note by ID
+   * 
+   * @param noteId - JournalEntry document ID
+   */
   async removeNote(noteId: string): Promise<void> {
-    if (!game.user?.isGM) return;
+    if (!game.user?.isGM) {
+      console.warn('🌉 Simple Calendar Bridge: Only GMs can remove calendar notes');
+      return;
+    }
     
     try {
       const journal = game.journal?.get(noteId);
       if (journal) {
+        console.log('🌉 Simple Calendar Bridge: Removing calendar note:', journal.name);
         await journal.delete();
+        console.log('🌉 Simple Calendar Bridge: Note removed successfully');
+      } else {
+        console.warn('🌉 Simple Calendar Bridge: Note not found for removal:', noteId);
       }
     } catch (error) {
-      console.error('Failed to remove calendar note:', error);
+      console.error('🌉 Simple Calendar Bridge: Failed to remove calendar note:', error);
     }
   }
   

@@ -5,7 +5,7 @@
 
 import { SeasonsStarsProvider } from './providers/seasons-stars';
 import { SeasonsStarsIntegrationProvider } from './providers/seasons-stars-integration';
-import { SimpleCalendarAPIBridge } from './api/simple-calendar-api';
+import { SimpleCalendarAPIBridge, Icons } from './api/simple-calendar-api';
 import { HookBridge } from './api/hooks';
 import type { CalendarProvider } from './types';
 
@@ -193,13 +193,15 @@ class SimpleCalendarCompatibilityBridge {
     // Simple Weather checks for SimpleCalendar in globalThis, not window
     (window as any).SimpleCalendar = {
       api: this.api,
-      Hooks: this.hookBridge.getHookNames()
+      Hooks: this.hookBridge.getHookNames(),
+      Icons: Icons
     };
     
     // Also expose in globalThis for Simple Weather compatibility
     (globalThis as any).SimpleCalendar = {
       api: this.api,
-      Hooks: this.hookBridge.getHookNames()
+      Hooks: this.hookBridge.getHookNames(),
+      Icons: Icons
     };
     
     console.log('🌉 SimpleCalendar.api exposed:', !!(globalThis as any).SimpleCalendar?.api);
