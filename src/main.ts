@@ -4,6 +4,7 @@
  */
 
 import { SeasonsStarsProvider } from './providers/seasons-stars';
+import { SeasonsStarsIntegrationProvider } from './providers/seasons-stars-integration';
 import { SimpleCalendarAPIBridge } from './api/simple-calendar-api';
 import { HookBridge } from './api/hooks';
 import type { CalendarProvider } from './types';
@@ -147,12 +148,18 @@ class SimpleCalendarCompatibilityBridge {
     console.log('🌉 Available modules:', Array.from(game.modules?.keys() || []));
     console.log('🌉 game.seasonsStars available:', !!(game as any).seasonsStars);
     
-    // Priority 1: Seasons & Stars
+    // Priority 1: Seasons & Stars Integration Interface (v2.0+)
+    if (SeasonsStarsIntegrationProvider.isAvailable()) {
+      console.log('🌉 Seasons & Stars integration provider is available');
+      return new SeasonsStarsIntegrationProvider();
+    }
+    
+    // Priority 2: Seasons & Stars Legacy Provider (v1.x)
     if (SeasonsStarsProvider.isAvailable()) {
-      console.log('🌉 Seasons & Stars provider is available');
+      console.log('🌉 Seasons & Stars legacy provider is available');
       return new SeasonsStarsProvider();
     } else {
-      console.log('🌉 Seasons & Stars provider not available');
+      console.log('🌉 No Seasons & Stars providers available');
     }
     
     // Priority 2: About Time (future implementation)
