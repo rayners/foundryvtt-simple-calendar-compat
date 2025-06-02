@@ -1,0 +1,155 @@
+name: Bug Report
+description: Report a bug in Simple Calendar Compatibility Bridge
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug in the Simple Calendar Compatibility Bridge!
+        
+        For migration-specific issues, please use the Migration Issue template.
+        For module compatibility issues, please use the Compatibility Issue template.
+
+  - type: input
+    id: bridge-version
+    attributes:
+      label: Bridge Module Version
+      description: What version of Simple Calendar Compatibility Bridge are you using?
+      placeholder: "v1.0.0"
+    validations:
+      required: true
+
+  - type: input
+    id: ss-version
+    attributes:
+      label: Seasons & Stars Version
+      description: What version of Seasons & Stars are you using?
+      placeholder: "v0.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: foundry-version
+    attributes:
+      label: Foundry VTT Version
+      description: What version of Foundry VTT are you using?
+      placeholder: "v13.331"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe what happened and what you expected to happen instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Tell us how to reproduce this behavior
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: Describe the expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: console-errors
+    attributes:
+      label: Console Errors
+      description: Check the browser console (F12) for any error messages and paste them here
+      render: javascript
+      placeholder: Paste any console errors here
+
+  - type: checkboxes
+    id: bug-area
+    attributes:
+      label: Bug Area
+      description: Which area of the bridge module is affected?
+      options:
+        - label: Simple Calendar API emulation
+        - label: Date/time conversion
+        - label: Module detection and initialization
+        - label: Settings and configuration
+        - label: Integration with other modules
+        - label: Performance issues
+        - label: User interface
+        - label: Other (please specify below)
+
+  - type: checkboxes
+    id: simple-calendar-status
+    attributes:
+      label: Simple Calendar Status
+      description: What is the status of Simple Calendar in your setup?
+      options:
+        - label: Simple Calendar is completely removed
+        - label: Simple Calendar is disabled but still installed
+        - label: Simple Calendar is still active (not recommended)
+        - label: I'm not sure about Simple Calendar status
+    validations:
+      required: true
+
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      description: What browser are you using?
+      options:
+        - Chrome
+        - Firefox
+        - Safari
+        - Edge
+        - Other (please specify in additional info)
+    validations:
+      required: true
+
+  - type: textarea
+    id: bridge-debug
+    attributes:
+      label: Bridge Debug Information
+      description: |
+        Run this command in the console and paste the output:
+        `game.modules.get('simple-calendar-compat')?.api?.debug?.()`
+      render: javascript
+      placeholder: Paste the bridge debug output here
+
+  - type: textarea
+    id: related-modules
+    attributes:
+      label: Related Modules
+      description: |
+        List any modules that might be related to this bug.
+        Include calendar/time modules and any that were using Simple Calendar.
+      placeholder: |
+        For example:
+        - Simple Weather v1.5.0
+        - SmallTime v1.2.3
+        - About Time v1.0.0
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Information
+      description: |
+        Add any other context about the problem here.
+        
+        Tips:
+        - Screenshots or video recordings are very helpful
+        - If this worked before, mention when it started failing
+        - Include your setup process if this is a new installation
+      placeholder: Any additional context, screenshots, or information

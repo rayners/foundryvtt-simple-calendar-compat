@@ -56,7 +56,51 @@
 - **All remaining errors are strictness and jQuery type refinements** (not blockers)
 - **Established comprehensive type foundation** for bridge development
 
-### Latest Session: Complete Simple Weather Compatibility ✅ COMPLETED
+### Current Session: Bridge Note Highlighting and Folder Management Fixes ✅ COMPLETED
+
+**Objective**: Fix critical issues where only one day with notes was highlighted on calendar grid and duplicate "Calendar Notes" folders were created on Foundry restart.
+
+**Problem Solved**: Architecture violations and timing issues were preventing proper note indexing and causing folder duplication between bridge and Seasons & Stars modules.
+
+**Major Accomplishments** (Commit: `0ec0036`):
+
+1. **Fixed Note Highlighting Issue**
+   - **Root Cause**: Bridge created dual flag structure but S&S storage only recognized S&S flags, causing indexing failures
+   - **Solution**: Bridge now creates notes with S&S flags as primary structure for proper storage recognition
+   - **Storage Reindex**: Bridge calls `game.seasonsStars.notes.storage.rebuildIndex()` after note creation using S&S public API
+   - **Clean Architecture**: Uses only S&S public APIs, no bridge-specific code in S&S core
+
+2. **Fixed Folder Duplication Issue**
+   - **Root Cause**: Bridge and S&S were looking for different flag namespaces, each creating their own folders
+   - **Solution**: Bridge checks for both flag types (`'seasons-and-stars'` and `'foundryvtt-simple-calendar-compat'`) before creating folders
+   - **Unified Detection**: Bridge reuses existing S&S folders when found, preventing duplicates
+   - **Backward Compatibility**: New folders created with both flag types for cross-module detection
+
+3. **Enhanced Note Creation Process**
+   - **S&S-Compatible Flags**: Notes created with proper `'seasons-and-stars'` flag structure as primary
+   - **Bridge Tracking**: Optional bridge metadata stored separately for debugging/migration purposes
+   - **Proper v13 Pages**: Notes use Foundry v13 JournalEntryPage system with "Details" page name
+   - **Date Format Consistency**: Proper 0-based to 1-based date conversion for S&S storage compatibility
+
+4. **Maintained Clean Architecture Separation**
+   - **S&S Changes**: Only made `storage` property public to expose existing `rebuildIndex()` API
+   - **Zero Bridge Awareness**: S&S core has no knowledge of bridge module existence
+   - **Public API Usage**: Bridge uses only documented S&S APIs for note management and storage operations
+   - **Separation Preserved**: Architecture constraint maintained - S&S independent of bridge
+
+**Key Implementation Details**:
+- **Note Flag Structure**: Primary `'seasons-and-stars'` flags with optional `'foundryvtt-simple-calendar-compat'` tracking
+- **Storage Indexing**: Bridge triggers `storage.rebuildIndex()` after note creation for immediate calendar highlighting
+- **Folder Management**: Bridge detects existing S&S folders and reuses them to prevent duplication
+- **Date Key Format**: Consistent `YYYY-MM-DD` format between bridge creation and S&S storage retrieval
+
+**Architecture Benefits Achieved**:
+- **Fixed Calendar Highlighting**: All bridge-created notes now appear as highlighted days on calendar grid
+- **Eliminated Folder Duplication**: Single "Calendar Notes" folder shared between bridge and S&S
+- **Clean Module Separation**: S&S remains completely independent while bridge provides full compatibility
+- **Robust Note Management**: Proper indexing and retrieval of notes across module boundaries
+
+### Previous Session: Complete Simple Weather Compatibility ✅ COMPLETED
 
 **Objective**: Add missing Simple Calendar features needed for complete Simple Weather compatibility.
 
@@ -134,6 +178,22 @@
 - **API Completeness**: Full Simple Calendar API surface implementation
 
 ## Technical Notes
+
+### Clean Architecture Lessons Learned
+
+**Critical Principle**: When building compatibility bridges, resist the temptation to make the target module aware of the bridge. Always adapt the bridge to the target, never the reverse.
+
+**Wrong Approach** (Almost Implemented):
+- Making S&S check for bridge flags → Violates separation
+- Adding bridge-specific hooks to S&S → Creates coupling
+- Dual flag detection in S&S core → Bridge awareness
+
+**Correct Approach** (Implemented):
+- Bridge creates S&S-compatible notes only → S&S naturally recognizes them
+- Bridge calls S&S public APIs (`rebuildIndex()`) → Uses existing interfaces
+- Bridge adapts to S&S folder conventions → No S&S changes needed
+
+**Result**: Clean separation where S&S can evolve independently while bridge provides full compatibility.
 
 ### Provider Pattern Architecture
 - **BaseProvider Interface**: Standard calendar integration contract

@@ -1,0 +1,176 @@
+name: Compatibility Issue
+description: Report compatibility problems with modules expecting Simple Calendar
+title: "[Compatibility]: "
+labels: ["compatibility", "bridge-integration"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This template is for compatibility issues between the bridge module and other modules that expect Simple Calendar.
+        
+        For migration-specific issues, please use the Migration Issue template instead.
+
+  - type: input
+    id: affected-module
+    attributes:
+      label: Affected Module
+      description: Which module is having compatibility issues?
+      placeholder: "Simple Weather, SmallTime, About Time, etc."
+    validations:
+      required: true
+
+  - type: input
+    id: affected-module-version
+    attributes:
+      label: Affected Module Version
+      description: What version of the affected module are you using?
+      placeholder: "v1.2.3"
+    validations:
+      required: true
+
+  - type: input
+    id: bridge-version
+    attributes:
+      label: Bridge Module Version
+      description: What version of Simple Calendar Compatibility Bridge are you using?
+      placeholder: "v1.0.0"
+    validations:
+      required: true
+
+  - type: input
+    id: ss-version
+    attributes:
+      label: Seasons & Stars Version
+      description: What version of Seasons & Stars are you using?
+      placeholder: "v0.1.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: compatibility-problem
+    attributes:
+      label: Compatibility Problem
+      description: What compatibility issue are you experiencing?
+      placeholder: |
+        Describe the specific compatibility problem:
+        - What is the affected module trying to do?
+        - What error messages do you see?
+        - How does the behavior differ from what should happen?
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: issue-type
+    attributes:
+      label: Issue Type
+      description: What type of compatibility issue is this?
+      options:
+        - label: Module can't find Simple Calendar API
+        - label: Module finds API but gets incorrect data
+        - label: Module integration works partially
+        - label: Module integration causes errors
+        - label: Module integration causes performance issues
+        - label: Other (please specify below)
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: How should this module integration work?
+      placeholder: |
+        Describe what should happen:
+        - What should the module be able to do?
+        - How did it work with Simple Calendar?
+        - What APIs or data does it need?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual Behavior
+      description: What actually happens instead?
+      placeholder: Describe the current behavior and any error messages
+    validations:
+      required: true
+
+  - type: textarea
+    id: console-errors
+    attributes:
+      label: Console Errors
+      description: Check the browser console (F12) for any compatibility-related errors
+      render: javascript
+      placeholder: Paste any console errors related to module compatibility
+
+  - type: textarea
+    id: bridge-debug
+    attributes:
+      label: Bridge Debug Information
+      description: |
+        Run this command in the console and paste the output:
+        `game.modules.get('simple-calendar-compat')?.api?.debug?.()`
+      render: javascript
+      placeholder: Paste the bridge debug output here
+
+  - type: checkboxes
+    id: worked-with-sc
+    attributes:
+      label: Simple Calendar Compatibility
+      description: Did this integration work with Simple Calendar?
+      options:
+        - label: Yes, this worked perfectly with Simple Calendar
+        - label: This partially worked with Simple Calendar
+        - label: This never worked with Simple Calendar
+        - label: I'm not sure - this is a new setup
+    validations:
+      required: true
+
+  - type: textarea
+    id: module-settings
+    attributes:
+      label: Module Settings
+      description: |
+        What are the relevant settings for the affected module?
+        Include any calendar-related or time-related configurations.
+      placeholder: Describe the module's settings related to calendar/time functionality
+
+  - type: textarea
+    id: test-scenario
+    attributes:
+      label: Test Scenario
+      description: |
+        What specific steps can reproduce this compatibility issue?
+      placeholder: |
+        1. Install modules...
+        2. Configure settings...
+        3. Try to use feature...
+        4. Observe problem...
+    validations:
+      required: true
+
+  - type: textarea
+    id: other-modules
+    attributes:
+      label: Other Active Modules
+      description: |
+        List other calendar/time-related modules you have active.
+        This helps identify potential conflicts.
+      placeholder: |
+        For example:
+        - SmallTime v1.2.3
+        - About Time v1.0.0
+        - Simple Weather v1.5.0
+
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: Additional Information
+      description: |
+        Any other context that might help diagnose the compatibility issue.
+        
+        Helpful information:
+        - Screenshots of module settings
+        - Screenshots of error states
+        - Network tab information if relevant
+        - Timing of when the issue occurs
+      placeholder: Any additional context about the compatibility issue

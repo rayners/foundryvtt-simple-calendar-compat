@@ -1,0 +1,151 @@
+name: Migration Issue
+description: Report problems migrating from Simple Calendar to Seasons & Stars
+title: "[Migration]: "
+labels: ["migration", "simple-calendar-migration"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This template is for issues specifically related to migrating from Simple Calendar to Seasons & Stars.
+        
+        For general compatibility issues, please use the Compatibility Issue template instead.
+
+  - type: input
+    id: simple-calendar-version
+    attributes:
+      label: Simple Calendar Version
+      description: What version of Simple Calendar were you using?
+      placeholder: "v2.4.6"
+    validations:
+      required: true
+
+  - type: input
+    id: bridge-version
+    attributes:
+      label: Bridge Module Version
+      description: What version of Simple Calendar Compatibility Bridge are you using?
+      placeholder: "v1.0.0"
+    validations:
+      required: true
+
+  - type: input
+    id: ss-version
+    attributes:
+      label: Seasons & Stars Version
+      description: What version of Seasons & Stars are you using?
+      placeholder: "v0.1.0"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: migration-step
+    attributes:
+      label: Migration Step
+      description: At which step did the migration issue occur?
+      options:
+        - label: Installing Seasons & Stars
+        - label: Installing Simple Calendar Compatibility Bridge
+        - label: Disabling Simple Calendar
+        - label: Migrating calendar configuration
+        - label: Migrating notes/events
+        - label: Testing module compatibility
+        - label: Final Simple Calendar removal
+    validations:
+      required: true
+
+  - type: textarea
+    id: migration-problem
+    attributes:
+      label: Migration Problem
+      description: What went wrong during the migration process?
+      placeholder: |
+        Describe the specific issue you encountered:
+        - What were you trying to do?
+        - What happened instead of the expected result?
+        - Did you get any error messages?
+    validations:
+      required: true
+
+  - type: textarea
+    id: data-before
+    attributes:
+      label: Simple Calendar Data
+      description: |
+        What data did you have in Simple Calendar before migration?
+        (This helps us understand what should have been migrated)
+      placeholder: |
+        For example:
+        - Custom calendar configuration
+        - Notes/events with specific dates
+        - Weather data from Simple Weather
+        - Custom settings or preferences
+
+  - type: textarea
+    id: data-after
+    attributes:
+      label: Current Data State
+      description: What data is visible/missing after migration?
+      placeholder: |
+        For example:
+        - Calendar appears but settings are wrong
+        - Some notes are missing
+        - Weather data not showing
+        - All data is missing
+
+  - type: checkboxes
+    id: followed-guide
+    attributes:
+      label: Migration Guide
+      description: Did you follow the migration guide?
+      options:
+        - label: Yes, I followed the complete migration guide
+        - label: I partially followed the guide
+        - label: I did not use the migration guide
+        - label: I couldn't find the migration guide
+
+  - type: textarea
+    id: console-errors
+    attributes:
+      label: Console Errors
+      description: Check the browser console (F12) for any migration-related errors
+      render: javascript
+      placeholder: Paste any console errors that occurred during migration
+
+  - type: textarea
+    id: simple-calendar-settings
+    attributes:
+      label: Simple Calendar Settings Export
+      description: |
+        If possible, export your Simple Calendar settings before migration.
+        You can usually find this in Simple Calendar's configuration dialog.
+      placeholder: Paste exported Simple Calendar settings here (if available)
+
+  - type: textarea
+    id: expected-result
+    attributes:
+      label: Expected Result
+      description: What did you expect to happen after migration?
+      placeholder: Describe what you expected the migration to accomplish
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Temporary Workaround
+      description: Have you found any temporary solutions or workarounds?
+      placeholder: Describe any workarounds you've discovered
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: |
+        Any other information that might be helpful for diagnosing the migration issue.
+        
+        Helpful information:
+        - Screenshots of before/after states
+        - List of other active modules
+        - Whether this is a new world or existing world
+        - Any custom modifications to Simple Calendar
+      placeholder: Any additional context about the migration issue
