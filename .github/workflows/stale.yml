@@ -27,8 +27,8 @@ jobs:
             
             The issue will be closed if no further activity occurs. Thank you for your contributions!
           stale-issue-label: 'stale'
-          days-before-stale: 60
-          days-before-close: 14
+          days-before-stale: 120
+          days-before-close: 28
           
           # Stale PR configuration  
           stale-pr-message: |
@@ -41,8 +41,8 @@ jobs:
             
             The PR will be closed if no further activity occurs. Thank you for your contribution!
           stale-pr-label: 'stale'
-          days-before-pr-stale: 45
-          days-before-pr-close: 14
+          days-before-pr-stale: 90
+          days-before-pr-close: 28
           
           # Labels to exempt from stale processing
           exempt-issue-labels: 'bug,enhancement,help-wanted,good-first-issue,migration,compatibility'
