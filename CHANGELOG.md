@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Your support helps fund bridge improvements and additional calendar module support!
 
+## [0.2.0](https://github.com/rayners/foundryvtt-simple-calendar-compat/compare/v0.1.1...v0.2.0) (2025-06-06)
+
+
+### Features
+
+* add comprehensive Patreon and GitHub Sponsors support ([bef3bcb](https://github.com/rayners/foundryvtt-simple-calendar-compat/commit/bef3bcb7ee900deeae0cb4376a349ee492617c33))
+
 ## [0.1.1] - 2025-06-06
 
 ### Fixed
