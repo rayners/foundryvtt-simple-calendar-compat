@@ -235,3 +235,24 @@ src/
 - **Error Recovery**: Comprehensive fallback strategies
 
 This architecture enables seamless Simple Calendar compatibility while maintaining clean separation between the bridge and underlying calendar implementations.
+
+## Documentation and Positioning Guidelines
+
+### Language and Claims for Public-Facing Content
+- **Avoid ambitious claims**: Use "intended to" instead of "works with" or "tested with" for untested scenarios
+- **Alpha software reality**: Acknowledge development status and testing limitations honestly
+- **Example**: "Designed to work with Simple Weather" NOT "Fully compatible with Simple Weather"
+- **Example**: "Intended for SmallTime, About Time" NOT "Tested with all calendar-dependent modules"
+
+### Positioning vs Simple Calendar
+- **Avoid "modern" language**: Never position the bridge as enabling "modern" vs "legacy" calendars
+- **Focus on technical facts**: Emphasize "Foundry v13+ compatibility" instead of subjective comparisons
+- **Respectful tone**: Simple Calendar is a valid solution for its supported Foundry versions
+- **Version-based differentiation**: "Foundry v13+ calendar compatibility" NOT "Modern calendar bridge"
+- **Factual advantages**: API translation, v13+ support, specific module compatibility - NOT value judgments
+
+### Professional Communication Standards
+- **Honest limitations**: Clearly state alpha status, testing scope, and API coverage limitations
+- **Realistic expectations**: Don't oversell compatibility or promise universal module support
+- **Community respect**: Acknowledge Simple Calendar's value while highlighting technical bridge functionality
+- **Technical focus**: Use Foundry version compatibility and API coverage as primary differentiators

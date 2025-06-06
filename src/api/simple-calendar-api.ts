@@ -257,9 +257,9 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
     const monthName = (ssDate.month >= 1 && ssDate.month <= monthNames.length) ? 
       monthNames[ssDate.month - 1] : 'Unknown Month';
     
-    // Validate weekday for safe array access (S&S uses 1-based weekdays)
-    const weekdayName = (ssDate.weekday >= 1 && ssDate.weekday <= weekdayNames.length) ?
-      weekdayNames[ssDate.weekday - 1] : 'Unknown Day';
+    // Validate weekday for safe array access (S&S uses 0-based weekdays like Simple Calendar)
+    const weekdayName = (ssDate.weekday >= 0 && ssDate.weekday < weekdayNames.length) ?
+      weekdayNames[ssDate.weekday] : 'Unknown Day';
     
     // Ensure we have valid string values
     const safeWeekdayName = weekdayName || 'Unknown Day';
@@ -277,7 +277,7 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
       year: ssDate.year,
       month: ssDate.month - 1,     // Convert 1-based to 0-based for SC compatibility
       day: ssDate.day - 1,         // Convert 1-based to 0-based for SC compatibility
-      dayOfTheWeek: ssDate.weekday - 1,  // Convert 1-based to 0-based for SC compatibility
+      dayOfTheWeek: ssDate.weekday,       // Already 0-based, no conversion needed
       hour: ssDate.time?.hour || 0,
       minute: ssDate.time?.minute || 0,
       second: ssDate.time?.second || 0,
@@ -418,7 +418,7 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
       year: scDate.year,
       month: (scDate.month || 0) + 1,  // Convert 0-based to 1-based
       day: (scDate.day || 0) + 1,      // Convert 0-based to 1-based
-      weekday: (scDate.dayOfTheWeek || scDate.weekday || 0) + 1, // Convert 0-based to 1-based
+      weekday: (scDate.dayOfTheWeek || scDate.weekday || 0),     // Already 0-based, no conversion needed
       time: {
         hour: scDate.hour || 0,
         minute: scDate.minute || 0,
