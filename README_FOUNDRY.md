@@ -94,6 +94,15 @@ Designed to work with modules such as:
 
 **Alpha Release**: This compatibility bridge is in active development. Not all Simple Calendar functionality may be available. Please report compatibility issues and missing features through GitHub.
 
+## 💖 Support Development
+
+Love this compatibility bridge? Consider supporting continued development:
+
+[![Patreon](https://img.shields.io/badge/Patreon-Support%20Development-ff424d?style=for-the-badge&logo=patreon)](https://patreon.com/rayners)
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-Support%20Development-ea4aaa?style=for-the-badge&logo=github)](https://github.com/sponsors/rayners)
+
+Your support helps fund bridge compatibility improvements, support for additional calendar modules, better Simple Calendar feature coverage, and enhanced module integration testing.
+
 ---
 
 *Maintaining module compatibility during Foundry v13+ transitions*

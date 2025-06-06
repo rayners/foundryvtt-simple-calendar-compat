@@ -218,6 +218,19 @@ The bridge implements the complete Simple Calendar API. If something doesn't wor
 2. Report issues with specific module combinations
 3. Provide console logs and error messages
 
+## 💖 Support This Project
+
+Love using the Simple Calendar Compatibility Bridge? Consider supporting continued development:
+
+[![Patreon](https://img.shields.io/badge/Patreon-Support%20Development-ff424d?style=for-the-badge&logo=patreon)](https://patreon.com/rayners)
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-Support%20Development-ea4aaa?style=for-the-badge&logo=github)](https://github.com/sponsors/rayners)
+
+Your support helps fund:
+- 🔧 **Bridge Compatibility Improvements**: Enhanced integration with additional calendar modules
+- 🎯 **Additional Calendar Module Support**: Support for more calendar systems beyond Seasons & Stars
+- 📈 **Better Simple Calendar Feature Coverage**: More complete API implementation and feature parity
+- 🧪 **Enhanced Module Integration Testing**: Comprehensive testing with popular calendar-dependent modules
+
 ## Contributing
 
 Contributions welcome! Areas of interest:

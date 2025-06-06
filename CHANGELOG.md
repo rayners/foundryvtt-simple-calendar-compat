@@ -5,6 +5,15 @@ All notable changes to the Simple Calendar Compatibility Bridge will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+---
+
+💖 **Love this compatibility bridge?** Consider supporting development:
+
+[![Patreon](https://img.shields.io/badge/Patreon-Support%20Development-ff424d?style=for-the-badge&logo=patreon)](https://patreon.com/rayners)
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-Support%20Development-ea4aaa?style=for-the-badge&logo=github)](https://github.com/sponsors/rayners)
+
+Your support helps fund bridge improvements and additional calendar module support!
+
 ## [0.1.1] - 2025-06-06
 
 ### Fixed
