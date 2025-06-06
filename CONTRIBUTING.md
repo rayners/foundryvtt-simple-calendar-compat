@@ -1,6 +1,6 @@
 # Contributing to Simple Calendar Compatibility Bridge
 
-Thank you for your interest in contributing to the Simple Calendar Compatibility Bridge! This module enables seamless migration from Simple Calendar to Seasons & Stars while maintaining compatibility with existing modules.
+Thank you for your interest in contributing to the Simple Calendar Compatibility Bridge! This module enables seamless migration from Simple Calendar to modern calendar systems while maintaining compatibility with existing modules.
 
 ## Table of Contents
 
@@ -16,13 +16,12 @@ Thank you for your interest in contributing to the Simple Calendar Compatibility
 
 The Simple Calendar Compatibility Bridge serves as a translation layer that:
 - Provides Simple Calendar API emulation for dependent modules
-- Enables migration from Simple Calendar to Seasons & Stars
+- Enables migration from Simple Calendar to modern calendar systems
 - Maintains compatibility with modules like Simple Weather, SmallTime, and About Time
 - Handles data conversion and API translation
 
-### Related Repositories
+### Documentation
 
-- **Seasons & Stars**: [rayners/fvtt-seasons-and-stars](https://github.com/rayners/fvtt-seasons-and-stars)
 - **Main Documentation**: [docs.rayners.dev](https://docs.rayners.dev)
 
 ## Getting Started
@@ -31,7 +30,7 @@ The Simple Calendar Compatibility Bridge serves as a translation layer that:
 
 - Node.js 18+ and npm
 - Foundry VTT v13+ for testing
-- Seasons & Stars module for integration testing
+- Compatible calendar module for integration testing
 - Git and TypeScript knowledge recommended
 
 ### Development Setup
@@ -80,54 +79,31 @@ compat(weather): enhance Simple Weather integration reliability
 
 ## Testing
 
-### Compatibility Testing Requirements
+### Testing Requirements
 
 Since this module serves as a bridge, comprehensive testing is critical:
 
-#### 1. **Simple Calendar API Compatibility**
+#### 1. **Unit Tests**
 ```bash
-# Test API methods match expected Simple Calendar behavior
-game.SimpleCalendar.api.timestampToDate(timestamp)
-game.SimpleCalendar.api.dateToTimestamp(dateObject)
+npm run test
 ```
 
-#### 2. **Module Integration Testing**
+#### 2. **Build Tests**
+```bash
+npm run build
+```
+
+#### 3. **Module Integration Testing**
 Test with actual dependent modules:
 - **Simple Weather**: Weather data storage and retrieval
 - **SmallTime**: Date/time display formatting
 - **About Time**: Time advancement integration
 
-#### 3. **Migration Testing**
-- Test migration from various Simple Calendar versions
-- Verify data preservation during migration
-- Test rollback scenarios
-
-#### 4. **Cross-Module Testing**
-```bash
-# Install test environment
-# 1. Seasons & Stars (latest)
-# 2. Simple Calendar Compat Bridge (your changes)
-# 3. Simple Weather / SmallTime / About Time
-# 4. Test all functionality
-```
-
-### Test Scenarios
-
-#### Essential Test Cases
-1. **Fresh Installation**
-   - Install S&S + Bridge without Simple Calendar
-   - Verify modules detect "Simple Calendar" correctly
-
-2. **Migration Path**
-   - Start with Simple Calendar + dependent modules
-   - Install S&S + Bridge
-   - Disable Simple Calendar
-   - Verify all functionality preserved
-
-3. **API Accuracy**
-   - Compare bridge API responses to Simple Calendar
-   - Test edge cases (leap years, month boundaries, etc.)
-   - Verify date format conversions
+#### 4. **API Compatibility**
+Verify API methods match expected Simple Calendar behavior:
+- Date conversion accuracy
+- Hook system compatibility
+- Data format preservation
 
 ## Compatibility Guidelines
 
@@ -156,62 +132,18 @@ When implementing or modifying API methods:
 
 Support multiple versions where possible:
 - Simple Calendar v2.0+ (primary target)
-- Seasons & Stars v0.1+ (current requirement)
+- Compatible calendar modules
 - Foundry VTT v13+ (minimum requirement)
-
-## Module-Specific Guidelines
-
-### Simple Weather Integration
-- Weather data stored via bridge should appear in S&S calendar
-- Temperature and weather icons must display correctly
-- Historical weather data should be preserved during migration
-
-### SmallTime Integration
-- Date/time display must match Simple Calendar formatting
-- Month names and date formats should be accurate
-- Custom calendar configurations should be respected
-
-### About Time Integration
-- Time advancement should work through bridge
-- Game time synchronization must be maintained
-- Clock display should update correctly
 
 ## Submitting Changes
 
 ### Pull Request Requirements
 
-- [ ] All compatibility tests pass
-- [ ] Integration with Seasons & Stars verified
+- [ ] All tests pass (`npm run test`)
+- [ ] Build completes successfully (`npm run build`) 
 - [ ] At least one dependent module tested (Simple Weather/SmallTime/About Time)
-- [ ] Migration scenarios tested (if applicable)
-- [ ] Documentation updated
+- [ ] Documentation updated if needed
 - [ ] Console errors resolved
-
-### Issue Coordination
-
-Since bridge issues often relate to main S&S functionality:
-
-1. **Check Related Issues**: Look for related issues in [rayners/fvtt-seasons-and-stars](https://github.com/rayners/fvtt-seasons-and-stars/issues)
-2. **Cross-Reference**: Link issues between repositories when relevant
-3. **Coordinate Fixes**: Some issues may require changes in both repositories
-
-## Debugging and Troubleshooting
-
-### Bridge Debug Information
-```javascript
-// Get bridge debug info
-game.modules.get('simple-calendar-compat')?.api?.debug?.()
-
-// Check S&S integration
-game.seasonsStars?.integration?.detect()
-```
-
-### Common Issue Areas
-
-1. **Date Conversion**: 0-based vs 1-based indexing
-2. **Module Detection**: Timing of module initialization
-3. **API Availability**: Methods available at different lifecycle stages
-4. **Data Migration**: Preserving user data during transitions
 
 ## Documentation
 
@@ -223,19 +155,11 @@ When making changes, update:
 - Module-specific integration notes
 - Troubleshooting guides
 
-### Documentation Files
-
-- `README.md` - Overview and quick setup
-- `MIGRATION-GUIDE.md` - Step-by-step migration process
-- `API-COMPATIBILITY.md` - Simple Calendar API coverage
-- `TROUBLESHOOTING.md` - Common issues and solutions
-
 ## Getting Help
 
-- **Issues**: Use appropriate issue templates for different problem types
-- **Main S&S Issues**: Check [rayners/fvtt-seasons-and-stars](https://github.com/rayners/fvtt-seasons-and-stars/issues)
-- **Discord**: Find @rayners78 on the Foundry VTT Discord
+- **Issues**: Use GitHub issues for bug reports and feature requests
 - **Documentation**: [docs.rayners.dev](https://docs.rayners.dev) for comprehensive guides
+- **Discord**: Foundry VTT community Discord
 
 ## License
 
