@@ -14,6 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Your support helps fund bridge improvements and additional calendar module support!
 
+## [0.1.2] - 2025-06-06
+
+### Fixed
+- Fixed remaining weekday conversion errors in hook system and integration provider
+- Completed weekday indexing fix across all code paths (hooks.ts, seasons-stars-integration.ts)
+- All weekday conversions now correctly use 0-based indexing for full WFRP4e compatibility
+
+### Technical Details
+- Eliminated final instances of incorrect `weekday - 1` conversions in hook bridging
+- Fixed weekday array access in integration provider display formatting
+- Ensured consistent 0-based weekday handling across the entire bridge codebase
+
 ## [0.1.1] - 2025-06-06
 
 ### Fixed

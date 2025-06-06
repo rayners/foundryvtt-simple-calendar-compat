@@ -497,7 +497,7 @@ export class SeasonsStarsIntegrationProvider implements CalendarProvider {
       year: ssDate.year,
       month: ssDate.month - 1,  // SC uses 0-based months
       day: ssDate.day - 1,      // SC uses 0-based days
-      dayOfTheWeek: ssDate.weekday - 1,  // SC uses 0-based weekdays
+      dayOfTheWeek: ssDate.weekday,  // Already 0-based, no conversion needed
       hour: ssDate.time?.hour || 0,
       minute: ssDate.time?.minute || 0,
       second: ssDate.time?.second || 0,
@@ -507,7 +507,7 @@ export class SeasonsStarsIntegrationProvider implements CalendarProvider {
       display: {
         date: this.formatDate(ssDate),
         time: this.formatTime(ssDate),
-        weekday: weekdayNames[ssDate.weekday - 1] || '',
+        weekday: weekdayNames[ssDate.weekday] || '',
         day: ssDate.day.toString(),
         monthName: monthNames[ssDate.month - 1] || '',
         month: ssDate.month.toString(),
