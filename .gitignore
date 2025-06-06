@@ -42,3 +42,6 @@ coverage/
 # Temporary folders
 tmp/
 temp/
+
+# Development memory (should not be in repository)
+CLAUDE.md
