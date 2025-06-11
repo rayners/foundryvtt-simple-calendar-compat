@@ -15,6 +15,7 @@ Thank you for your interest in contributing to the Simple Calendar Compatibility
 ## Project Overview
 
 The Simple Calendar Compatibility Bridge serves as a translation layer that:
+
 - Provides Simple Calendar API emulation for dependent modules
 - Enables migration from Simple Calendar to modern calendar systems
 - Maintains compatibility with modules like Simple Weather, SmallTime, and About Time
@@ -36,17 +37,20 @@ The Simple Calendar Compatibility Bridge serves as a translation layer that:
 ### Development Setup
 
 1. **Fork and Clone**
+
    ```bash
    git clone https://github.com/your-username/foundryvtt-simple-calendar-compat.git
    cd foundryvtt-simple-calendar-compat
    ```
 
 2. **Install Dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Build the Module**
+
    ```bash
    npm run build
    ```
@@ -61,6 +65,7 @@ The Simple Calendar Compatibility Bridge serves as a translation layer that:
 ### Branch Naming
 
 Use descriptive branch names that indicate the type of change:
+
 - `fix/simple-weather-integration`
 - `feat/enhanced-migration-support`
 - `compat/about-time-api-updates`
@@ -69,6 +74,7 @@ Use descriptive branch names that indicate the type of change:
 ### Commit Messages
 
 Follow conventional commit format:
+
 ```
 type(scope): description
 
@@ -84,23 +90,29 @@ compat(weather): enhance Simple Weather integration reliability
 Since this module serves as a bridge, comprehensive testing is critical:
 
 #### 1. **Unit Tests**
+
 ```bash
 npm run test
 ```
 
 #### 2. **Build Tests**
+
 ```bash
 npm run build
 ```
 
 #### 3. **Module Integration Testing**
+
 Test with actual dependent modules:
+
 - **Simple Weather**: Weather data storage and retrieval
 - **SmallTime**: Date/time display formatting
 - **About Time**: Time advancement integration
 
 #### 4. **API Compatibility**
+
 Verify API methods match expected Simple Calendar behavior:
+
 - Date conversion accuracy
 - Hook system compatibility
 - Data format preservation
@@ -112,6 +124,7 @@ Verify API methods match expected Simple Calendar behavior:
 When implementing or modifying API methods:
 
 1. **Maintain Exact API Signatures**
+
    ```typescript
    // Must match Simple Calendar exactly
    timestampToDate(timestamp: number): SimpleCalendarDateObject
@@ -119,6 +132,7 @@ When implementing or modifying API methods:
    ```
 
 2. **Preserve Data Formats**
+
    - Simple Calendar uses 0-based months/days
    - Seasons & Stars uses 1-based months/days
    - Bridge must handle conversion accurately
@@ -131,6 +145,7 @@ When implementing or modifying API methods:
 ### Version Compatibility
 
 Support multiple versions where possible:
+
 - Simple Calendar v2.0+ (primary target)
 - Compatible calendar modules
 - Foundry VTT v13+ (minimum requirement)
@@ -140,7 +155,7 @@ Support multiple versions where possible:
 ### Pull Request Requirements
 
 - [ ] All tests pass (`npm run test`)
-- [ ] Build completes successfully (`npm run build`) 
+- [ ] Build completes successfully (`npm run build`)
 - [ ] At least one dependent module tested (Simple Weather/SmallTime/About Time)
 - [ ] Documentation updated if needed
 - [ ] Console errors resolved
@@ -150,6 +165,7 @@ Support multiple versions where possible:
 ### Required Documentation Updates
 
 When making changes, update:
+
 - Migration guides for affected scenarios
 - API compatibility documentation
 - Module-specific integration notes

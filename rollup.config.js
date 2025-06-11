@@ -8,18 +8,18 @@ const copyAssets = () => ({
     if (!existsSync('dist')) {
       mkdirSync('dist');
     }
-    
+
     // Copy module.json
     copyFileSync('module.json', 'dist/module.json');
     console.log('Copied module.json to dist/');
-    
+
     // Copy languages directory
     if (!existsSync('dist/languages')) {
       mkdirSync('dist/languages');
     }
     copyFileSync('languages/en.json', 'dist/languages/en.json');
     console.log('Copied languages to dist/');
-  }
+  },
 });
 
 export default {
@@ -27,15 +27,15 @@ export default {
   output: {
     file: 'dist/main.js',
     format: 'es',
-    sourcemap: true
+    sourcemap: true,
   },
   plugins: [
     typescript({
-      tsconfig: './tsconfig.json'
+      tsconfig: './tsconfig.json',
     }),
-    copyAssets()
+    copyAssets(),
   ],
   external: [
     // Don't bundle Foundry globals - they're available at runtime
-  ]
+  ],
 };

@@ -27,6 +27,7 @@ This module acts as a bridge between modules that expect the Simple Calendar API
 This bridge enables the following modules to work with modern calendar systems:
 
 ### ✅ **Fully Tested & Supported**
+
 - **SmallTime** - Time display widget with complete integration
 - **Simple Weather** - Complete weather system with all features:
   - Sidebar button integration on calendar widgets
@@ -35,6 +36,7 @@ This bridge enables the following modules to work with modern calendar systems:
   - All attachment modes (attached/detached to calendar)
 
 ### 🔄 **Expected to Work**
+
 - **Calendar/Weather** - Advanced weather systems
 - Any module expecting Simple Calendar API
 
@@ -86,22 +88,34 @@ Hooks.once('ready', () => {
       isAvailable: true,
       version: '2.1.0',
       api: {
-        getCurrentDate(): CalendarDate { /* implementation */ },
-        worldTimeToDate(timestamp: number): CalendarDate { /* implementation */ },
-        dateToWorldTime(date: CalendarDate): number { /* implementation */ },
-        formatDate(date: CalendarDate, options?: any): string { /* implementation */ },
-        getActiveCalendar(): Calendar { /* implementation */ },
+        getCurrentDate(): CalendarDate {
+          /* implementation */
+        },
+        worldTimeToDate(timestamp: number): CalendarDate {
+          /* implementation */
+        },
+        dateToWorldTime(date: CalendarDate): number {
+          /* implementation */
+        },
+        formatDate(date: CalendarDate, options?: any): string {
+          /* implementation */
+        },
+        getActiveCalendar(): Calendar {
+          /* implementation */
+        },
         // ... other API methods
       },
       widgets: {
         main: yourMainWidget,
         mini: yourMiniWidget,
-        grid: yourGridWidget
+        grid: yourGridWidget,
       },
       hooks: {
-        onDateChanged(callback: Function): void { /* implementation */ }
-      }
-    }
+        onDateChanged(callback: Function): void {
+          /* implementation */
+        },
+      },
+    },
   };
 });
 ```
@@ -121,7 +135,7 @@ if (yourCalendarIntegration?.isAvailable) {
 ```typescript
 export class YourCalendarIntegrationProvider implements CalendarProvider {
   constructor(private yourCalendar: YourCalendarIntegration) {}
-  
+
   // Implement CalendarProvider interface using yourCalendar.api methods
 }
 ```
@@ -136,7 +150,7 @@ The bridge implements the complete Simple Calendar API:
 - **Note Management**: `getNotesForDay()`, `addNote()`, `removeNote()` with full flag support
 - **Icon Constants**: `Icons.Fall`, `Icons.Winter`, `Icons.Spring`, `Icons.Summer`
 - **SmallTime Integration**: Clock controls, display formatting
-- **Simple Weather Integration**: 
+- **Simple Weather Integration**:
   - Sidebar buttons on all calendar widgets
   - Complete weather data persistence in calendar notes
   - Season icon mapping for weather generation
@@ -152,28 +166,28 @@ graph TD
     A[SmallTime] --> D[Simple Calendar API<br/>Compatibility Bridge]
     B[Simple Weather] --> D
     C[Other Modules<br/>expecting SC API] --> D
-    
+
     D --> E[Seasons & Stars<br/>Integration Interface]
-    
+
     subgraph "Bridge Responsibilities"
         D1[100% SC Authority]
-        D2[CSS/DOM Compatibility] 
+        D2[CSS/DOM Compatibility]
         D3[Hook Translation]
         D4[Format Conversion]
     end
-    
+
     subgraph "S&S Core"
         E1[Zero SC Knowledge]
         E2[Generic APIs Only]
         E3[Clean Architecture]
         E4[Independent Evolution]
     end
-    
+
     D -.-> D1
     D -.-> D2
     D -.-> D3
     D -.-> D4
-    
+
     E -.-> E1
     E -.-> E2
     E -.-> E3
@@ -183,7 +197,7 @@ graph TD
 ### Key Architectural Principles
 
 - **Bridge Authority**: Bridge handles 100% of Simple Calendar compatibility requirements
-- **Clean Separation**: Seasons & Stars has zero Simple Calendar knowledge  
+- **Clean Separation**: Seasons & Stars has zero Simple Calendar knowledge
 - **Generic APIs**: S&S provides reusable APIs for any calendar integration
 - **Format Translation**: Bridge handles all data format conversions (0-based ↔ 1-based)
 - **CSS/DOM Authority**: Bridge dynamically adds all required Simple Calendar classes
@@ -192,11 +206,13 @@ graph TD
 ## Benefits
 
 ### For Users
+
 - **Compatibility**: Use any calendar module with any calendar-dependent module
 - **Choice**: Switch between calendar modules without losing functionality
 - **Simplicity**: One bridge module handles all compatibility
 
 ### For Developers
+
 - **Focused Development**: Calendar modules focus on calendar functionality
 - **Reduced Maintenance**: No need to maintain Simple Calendar compatibility in each module
 - **Extensibility**: Easy to add support for new calendar modules
@@ -226,6 +242,7 @@ Love using the Simple Calendar Compatibility Bridge? Consider supporting continu
 [![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-Support%20Development-ea4aaa?style=for-the-badge&logo=github)](https://github.com/sponsors/rayners)
 
 Your support helps fund:
+
 - 🔧 **Bridge Compatibility Improvements**: Enhanced integration with additional calendar modules
 - 🎯 **Additional Calendar Module Support**: Support for more calendar systems beyond Seasons & Stars
 - 📈 **Better Simple Calendar Feature Coverage**: More complete API implementation and feature parity

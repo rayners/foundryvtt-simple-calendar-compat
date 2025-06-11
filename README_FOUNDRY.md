@@ -1,5 +1,6 @@
 # Simple Calendar Compatibility Bridge
-*API compatibility layer for Simple Calendar-dependent modules*
+
+_API compatibility layer for Simple Calendar-dependent modules_
 
 ## What This Module Does
 
@@ -14,6 +15,7 @@ The Simple Calendar Compatibility Bridge provides API compatibility for modules 
 ## How It Works
 
 This bridge module:
+
 - **Provides Simple Calendar API**: Presents the familiar Simple Calendar interface to dependent modules
 - **Translates to Seasons & Stars**: Converts API calls to work with the Seasons & Stars calendar system
 - **Preserves Functionality**: Maintains existing calendar notes and module data
@@ -22,19 +24,22 @@ This bridge module:
 ## Intended Module Support
 
 Designed to work with modules such as:
+
 - **Simple Weather**: Weather tracking and display
 - **SmallTime**: Enhanced time display
 - **About Time**: Time advancement automation
 
-*Note: This is an alpha release. While designed for these modules, extensive testing has not been completed.*
+_Note: This is an alpha release. While designed for these modules, extensive testing has not been completed._
 
 ## Installation Requirements
 
 **Required:**
+
 - Foundry VTT v13+
 - Seasons & Stars module
 
 **Important:**
+
 - Simple Calendar should be disabled or removed when using this bridge
 
 ## Setup Process
@@ -45,21 +50,24 @@ Designed to work with modules such as:
 4. Test that dependent modules continue to function
 5. Remove Simple Calendar when confident in the setup
 
-*Warning: Do not run this bridge alongside Simple Calendar - use one or the other.*
+_Warning: Do not run this bridge alongside Simple Calendar - use one or the other._
 
 ## Expected Functionality
 
 ### **Simple Weather Integration**
+
 - Weather data should continue to appear on calendar dates
 - Temperature and weather displays should function
 - Historical weather data should be maintained
 
 ### **SmallTime Integration**
+
 - Date formatting should continue working
 - Calendar data should populate displays correctly
 - Time advancement should remain functional
 
 ### **General Module Support**
+
 - Basic Simple Calendar API calls are implemented
 - Date conversion and formatting functions are provided
 - Time-related integrations are maintained
@@ -74,11 +82,13 @@ Designed to work with modules such as:
 ## Troubleshooting
 
 **Common Issues:**
+
 - Module compatibility problems
 - Date formatting inconsistencies
 - Missing functionality from original Simple Calendar
 
 **Getting Help:**
+
 - Check documentation for setup guidance
 - Report issues through GitHub
 - Use GitHub Discussions for community support
@@ -105,4 +115,4 @@ Your support helps fund bridge compatibility improvements, support for additiona
 
 ---
 
-*Maintaining module compatibility during Foundry v13+ transitions*
+_Maintaining module compatibility during Foundry v13+ transitions_

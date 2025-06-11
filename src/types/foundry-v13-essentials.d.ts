@@ -1,9 +1,9 @@
 /**
  * Essential Foundry VTT v13 Type Definitions
- * 
+ *
  * This file provides minimal but complete type definitions for Foundry VTT v13
  * to replace missing Foundry types in the Simple Calendar Compatibility module.
- * 
+ *
  * Only includes types actually used by the compatibility bridge.
  */
 
@@ -24,9 +24,9 @@ declare global {
       OWNER: number;
     };
   };
-  
+
   // jQuery globals provided by @types/jquery
-  
+
   // Console global
   const console: Console;
 }
@@ -43,11 +43,11 @@ interface Game {
   time: GameTime;
   i18n: Localization;
   journal: Collection<JournalEntry>;
-  
+
   // Simple Calendar API exposure point
   simpleCalendar?: any;
-  
-  // Seasons & Stars integration point  
+
+  // Seasons & Stars integration point
   seasonsStars?: {
     manager?: any;
     integration?: any;
@@ -126,7 +126,7 @@ interface JournalEntry {
   pages: Collection<JournalEntryPage>;
   flags?: Record<string, any>;
   ownership?: Record<string, number>;
-  
+
   update(data: any): Promise<JournalEntry>;
   delete(): Promise<JournalEntry>;
   setFlag(module: string, key: string, value: any): Promise<JournalEntry>;
@@ -172,11 +172,11 @@ interface SimpleCalendarAPI {
   getCurrentDate(): SimpleCalendarDate;
   setCurrentDate(date: SimpleCalendarDateInput): Promise<boolean>;
   advanceTimeToPreset(preset: string): Promise<void>;
-  
+
   // Configuration access
   getCalendars(): SimpleCalendarConfiguration[];
   getCurrentCalendar(): SimpleCalendarConfiguration | null;
-  
+
   // Hook integration
   Hooks: {
     on: (hook: string, callback: Function) => number;
@@ -186,27 +186,27 @@ interface SimpleCalendarAPI {
 
 interface SimpleCalendarDate {
   year: number;
-  month: number;          // 0-based for compatibility
-  day: number;           // 0-based for compatibility  
+  month: number; // 0-based for compatibility
+  day: number; // 0-based for compatibility
   hour: number;
   minute: number;
   second: number;
-  dayOffset?: number;     // Additional offset for compatibility
-  
+  dayOffset?: number; // Additional offset for compatibility
+
   // Display formatting (critical for module integration)
   display: {
-    monthName: string;    // Full month name
-    month: string;        // Month number as string
-    day: string;          // Day number as string
-    year: string;         // Year as string
-    daySuffix: string;    // Ordinal suffix (1st, 2nd, 3rd)
-    yearPrefix: string;   // Year prefix from calendar
-    yearPostfix: string;  // Year suffix from calendar
-    date: string;         // Full formatted date
-    time: string;         // Formatted time
-    weekday: string;      // Weekday name
+    monthName: string; // Full month name
+    month: string; // Month number as string
+    day: string; // Day number as string
+    year: string; // Year as string
+    daySuffix: string; // Ordinal suffix (1st, 2nd, 3rd)
+    yearPrefix: string; // Year prefix from calendar
+    yearPostfix: string; // Year suffix from calendar
+    date: string; // Full formatted date
+    time: string; // Formatted time
+    weekday: string; // Weekday name
   };
-  
+
   // Additional data for compatibility
   sunrise: number;
   sunset: number;
@@ -274,7 +274,7 @@ interface SeasonsStarsIntegration {
   detect(): SeasonsStarsIntegration | null;
   hasFeature(feature: string): boolean;
   getFeatureVersion(feature: string): string | null;
-  
+
   // API access
   readonly api: SeasonsStarsAPI;
   readonly widgets: SeasonsStarsWidgets;
@@ -307,8 +307,8 @@ interface SeasonsStarsHooks {
 
 interface SeasonsStarsDate {
   year: number;
-  month: number;    // 1-based in S&S
-  day: number;      // 1-based in S&S
+  month: number; // 1-based in S&S
+  day: number; // 1-based in S&S
   hour: number;
   minute: number;
   second: number;
@@ -383,20 +383,20 @@ declare class Collection<T> extends Map<string, T> {
 interface CalendarProvider {
   readonly name: string;
   readonly version: string;
-  
+
   isAvailable(): boolean;
   initialize(): Promise<void>;
-  
+
   // Date operations
   getCurrentDate(): SimpleCalendarDate;
   setCurrentDate(date: SimpleCalendarDateInput): Promise<boolean>;
   timestampToDate(timestamp: number): SimpleCalendarDate;
   dateToTimestamp(date: SimpleCalendarDateInput): number;
-  
+
   // Calendar operations
   getActiveCalendar(): SimpleCalendarConfiguration | null;
   getAvailableCalendars(): SimpleCalendarConfiguration[];
-  
+
   // Event handling
   onDateChanged(callback: (date: SimpleCalendarDate) => void): void;
   onCalendarChanged(callback: (calendar: SimpleCalendarConfiguration) => void): void;

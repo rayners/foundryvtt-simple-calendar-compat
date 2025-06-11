@@ -5,8 +5,8 @@
 // Core calendar date interface
 export interface CalendarDate {
   year: number;
-  month: number;  // 1-based
-  day: number;    // 1-based
+  month: number; // 1-based
+  day: number; // 1-based
   weekday: number;
   time?: {
     hour: number;
@@ -18,13 +18,13 @@ export interface CalendarDate {
 // Simple Calendar compatible date format
 export interface SimpleCalendarDate {
   year: number;
-  month: number;  // 0-based for SC compatibility
-  day: number;    // 0-based for SC compatibility
+  month: number; // 0-based for SC compatibility
+  day: number; // 0-based for SC compatibility
   dayOfTheWeek: number;
   hour: number;
   minute: number;
   second: number;
-  dayOffset: number;  // Additional offset for compatibility
+  dayOffset: number; // Additional offset for compatibility
   sunrise: number;
   sunset: number;
   display: {
@@ -50,23 +50,23 @@ export interface SimpleCalendarDate {
 export interface CalendarProvider {
   readonly name: string;
   readonly version: string;
-  
+
   // Core date methods
   getCurrentDate(): CalendarDate | null;
   worldTimeToDate(timestamp: number): CalendarDate;
   dateToWorldTime(date: CalendarDate): number;
   formatDate(date: CalendarDate, options?: any): string;
-  
+
   // Calendar metadata
   getActiveCalendar(): any;
   getMonthNames(): string[];
   getWeekdayNames(): string[];
-  
+
   // Time advancement (optional - for GM features)
   advanceDays?(days: number): Promise<void>;
   advanceHours?(hours: number): Promise<void>;
   advanceMinutes?(minutes: number): Promise<void>;
-  
+
   // Display helpers
   getSunriseSunset?(date: CalendarDate): { sunrise: number; sunset: number };
   getSeasonInfo?(date: CalendarDate): { icon: string; name: string };
@@ -81,29 +81,41 @@ export interface SimpleCalendarAPI {
   getCurrentDate(): SimpleCalendarDate;
   formatDateTime(date: any, format?: string): string;
   dateToTimestamp(date: any): number;
-  
+
   // Time advancement
   advanceDays(days: number): Promise<void>;
-  
+
   // Legacy support
   addMonths(date: any, months: number): any;
   addYears(date: any, years: number): any;
   setTime(time: number): Promise<void>;
-  
+
   // Simple Weather specific
-  addSidebarButton(name: string, icon: string, tooltip: string, isToggle: boolean, callback: Function): void;
-  
+  addSidebarButton(
+    name: string,
+    icon: string,
+    tooltip: string,
+    isToggle: boolean,
+    callback: Function
+  ): void;
+
   // Note management (basic)
   getNotesForDay(year: number, month: number, day: number): any[];
-  addNote(title: string, content: string, startDate: any, endDate: any, allDay: boolean): Promise<any>;
+  addNote(
+    title: string,
+    content: string,
+    startDate: any,
+    endDate: any,
+    allDay: boolean
+  ): Promise<any>;
   removeNote(noteId: string): Promise<void>;
-  
+
   // Clock control for SmallTime
   clockStatus(): { started: boolean };
   startClock(): void;
   stopClock(): void;
   showCalendar(): void;
-  
+
   // Moon and season APIs
   getAllMoons(): any[];
   getAllSeasons(): any[];
@@ -124,7 +136,7 @@ declare global {
       Hooks: SimpleCalendarHooks;
     };
   }
-  
+
   interface Game {
     seasonsStars?: {
       api: any;
