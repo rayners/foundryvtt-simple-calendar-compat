@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Your support helps fund bridge improvements and additional calendar module support!
 
+## [0.1.3](https://github.com/rayners/foundryvtt-simple-calendar-compat/compare/v0.1.2...v0.1.3) (2025-06-11)
+
+
+### Bug Fixes
+
+* complete weekday conversion fix for WFRP4e issue [#15](https://github.com/rayners/foundryvtt-simple-calendar-compat/issues/15) ([50eb18c](https://github.com/rayners/foundryvtt-simple-calendar-compat/commit/50eb18c2b1eddbb6b011a24c1e48a109ce65b2a6))
+* remove manual build from release-please workflow to prevent conflicts ([4454057](https://github.com/rayners/foundryvtt-simple-calendar-compat/commit/44540577fc37f700f9354d3cd56fedeca148bfa6))
+
 ## [0.1.2] - 2025-06-06
 
 ### Fixed
