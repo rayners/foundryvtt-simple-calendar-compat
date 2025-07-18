@@ -752,6 +752,51 @@ Hooks.once('init', () => {
 });
 
 /**
+ * Register Simple Calendar calendars with Seasons & Stars
+ * Listen for the external calendar registration hook from S&S
+ */
+Hooks.on('seasons-stars:registerExternalCalendars', ({ registerCalendar }) => {
+  console.log('🌉 Simple Calendar Compatibility Bridge | S&S requesting external calendar registration');
+  
+  try {
+    // Read Simple Calendar world data directly from settings
+    // Simple Calendar stores its calendar configurations in world settings
+    const simpleCalendarSettings = game.settings.storage.get('world');
+    
+    if (!simpleCalendarSettings) {
+      console.log('🌉 Simple Calendar Compatibility Bridge | No world settings found');
+      return;
+    }
+
+    // Look for Simple Calendar settings in the world data
+    // Simple Calendar typically stores data under keys like:
+    // - 'foundryvtt-simple-calendar.current-calendar'  
+    // - 'foundryvtt-simple-calendar.calendars'
+    // - 'foundryvtt-simple-calendar.general-settings'
+    
+    const scCalendarData = findSimpleCalendarData(simpleCalendarSettings);
+    
+    if (!scCalendarData) {
+      console.log('🌉 Simple Calendar Compatibility Bridge | No Simple Calendar data found in world settings');
+      return;
+    }
+
+    console.log('🌉 Simple Calendar Compatibility Bridge | Found Simple Calendar data, converting to S&S format');
+    
+    // Convert Simple Calendar data to S&S format and register
+    const calendarsRegistered = convertAndRegisterSimpleCalendarData(scCalendarData, registerCalendar);
+    
+    if (calendarsRegistered > 0) {
+      console.log(`🌉 Simple Calendar Compatibility Bridge | Successfully registered ${calendarsRegistered} calendars from Simple Calendar data`);
+      ui.notifications?.info(`Registered ${calendarsRegistered} calendars from Simple Calendar data`);
+    }
+    
+  } catch (error) {
+    console.error('🌉 Simple Calendar Compatibility Bridge | Error during calendar registration:', error);
+  }
+});
+
+/**
  * Setup fake module registration early for dependency checking
  */
 Hooks.once('setup', () => {
@@ -902,6 +947,173 @@ Hooks.once('destroy', () => {
   console.log('Simple Calendar Compatibility Bridge | Module shutting down');
   compatBridge?.cleanup();
 });
+
+/**
+ * Find Simple Calendar data in world settings
+ */
+function findSimpleCalendarData(worldSettings: any): any {
+  const scKeys = Object.keys(worldSettings).filter(key => 
+    key.startsWith('foundryvtt-simple-calendar.')
+  );
+  
+  if (scKeys.length === 0) {
+    return null;
+  }
+  
+  console.log(`🌉 Simple Calendar Compatibility Bridge | Found ${scKeys.length} Simple Calendar settings keys:`, scKeys);
+  
+  // Extract Simple Calendar data
+  const scData: any = {};
+  for (const key of scKeys) {
+    const scKey = key.replace('foundryvtt-simple-calendar.', '');
+    scData[scKey] = worldSettings[key];
+  }
+  
+  return scData;
+}
+
+/**
+ * Convert Simple Calendar data to S&S format and register calendars
+ */
+function convertAndRegisterSimpleCalendarData(scData: any, registerCalendar: Function): number {
+  let registeredCount = 0;
+  
+  // Look for calendar configurations in Simple Calendar data
+  // Simple Calendar can store multiple calendars and custom calendars
+  
+  // Check for current calendar setting
+  if (scData['current-calendar']) {
+    console.log('🌉 Simple Calendar Compatibility Bridge | Found current calendar setting:', scData['current-calendar']);
+  }
+  
+  // Check for custom calendars
+  if (scData['calendars']) {
+    console.log('🌉 Simple Calendar Compatibility Bridge | Found custom calendars data:', scData['calendars']);
+    
+    try {
+      const calendarsData = typeof scData['calendars'] === 'string' 
+        ? JSON.parse(scData['calendars']) 
+        : scData['calendars'];
+        
+      if (calendarsData && typeof calendarsData === 'object') {
+        for (const [calendarKey, calendarConfig] of Object.entries(calendarsData)) {
+          if (calendarConfig && typeof calendarConfig === 'object') {
+            const convertedCalendar = convertSimpleCalendarToSeasonsStars(calendarKey, calendarConfig);
+            
+            if (convertedCalendar) {
+              const sourceInfo = {
+                type: 'module' as const,
+                sourceName: 'Simple Calendar',
+                description: `Calendar imported from Simple Calendar: ${convertedCalendar.id}`,
+                icon: 'fa-solid fa-puzzle-piece',
+                moduleId: 'simple-calendar',
+                url: `simple-calendar:${calendarKey}`
+              };
+              
+              const success = registerCalendar(convertedCalendar, sourceInfo);
+              if (success) {
+                registeredCount++;
+                console.log(`🌉 Simple Calendar Compatibility Bridge | Registered calendar: ${convertedCalendar.id}`);
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('🌉 Simple Calendar Compatibility Bridge | Error parsing calendars data:', error);
+    }
+  }
+  
+  // Check for general settings that might contain calendar info
+  if (scData['general-settings']) {
+    console.log('🌉 Simple Calendar Compatibility Bridge | Found general settings:', scData['general-settings']);
+    // This might contain the active/default calendar configuration
+    // We could extract and convert this as well
+  }
+  
+  return registeredCount;
+}
+
+/**
+ * Convert a Simple Calendar configuration to Seasons & Stars format
+ */
+function convertSimpleCalendarToSeasonsStars(calendarKey: string, scConfig: any): any {
+  try {
+    // Simple Calendar format is quite different from S&S format
+    // This is a basic conversion - would need to be expanded based on actual SC data structure
+    
+    const calendar = {
+      id: `simple-calendar-${calendarKey}`,
+      translations: {
+        en: {
+          label: scConfig.name || scConfig.label || `Simple Calendar: ${calendarKey}`,
+          description: scConfig.description || `Calendar imported from Simple Calendar (${calendarKey})`
+        }
+      },
+      year: {
+        epoch: scConfig.year?.epoch || 0,
+        currentYear: scConfig.year?.currentYear || new Date().getFullYear(),
+        prefix: scConfig.year?.prefix || '',
+        suffix: scConfig.year?.suffix || '',
+        startDay: scConfig.year?.startDay || 1
+      },
+      leapYear: {
+        rule: scConfig.leapYear?.rule || 'none'
+      },
+      months: convertSimpleCalendarMonths(scConfig.months || []),
+      weekdays: convertSimpleCalendarWeekdays(scConfig.weekdays || []),
+      intercalary: [], // Simple Calendar handles this differently
+      time: {
+        hoursInDay: scConfig.time?.hoursInDay || 24,
+        minutesInHour: scConfig.time?.minutesInHour || 60,
+        secondsInMinute: scConfig.time?.secondsInMinute || 60
+      }
+    };
+    
+    return calendar;
+  } catch (error) {
+    console.error(`🌉 Simple Calendar Compatibility Bridge | Error converting calendar ${calendarKey}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Convert Simple Calendar months to S&S format
+ */
+function convertSimpleCalendarMonths(scMonths: any[]): any[] {
+  if (!Array.isArray(scMonths)) {
+    return [{ name: 'Month 1', days: 30 }]; // Fallback
+  }
+  
+  return scMonths.map((month, index) => ({
+    name: month.name || `Month ${index + 1}`,
+    days: month.days || month.numberOfDays || 30,
+    abbreviation: month.abbreviation || month.name?.substring(0, 3) || `M${index + 1}`
+  }));
+}
+
+/**
+ * Convert Simple Calendar weekdays to S&S format  
+ */
+function convertSimpleCalendarWeekdays(scWeekdays: any[]): any[] {
+  if (!Array.isArray(scWeekdays)) {
+    // Fallback to standard weekdays
+    return [
+      { name: 'Monday' },
+      { name: 'Tuesday' }, 
+      { name: 'Wednesday' },
+      { name: 'Thursday' },
+      { name: 'Friday' },
+      { name: 'Saturday' },
+      { name: 'Sunday' }
+    ];
+  }
+  
+  return scWeekdays.map((weekday, index) => ({
+    name: weekday.name || `Day ${index + 1}`,
+    abbreviation: weekday.abbreviation || weekday.name?.substring(0, 3) || `D${index + 1}`
+  }));
+}
 
 // Export for potential external access
 export { SimpleCalendarCompatibilityBridge };
