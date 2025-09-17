@@ -17,6 +17,16 @@
 - **Error Resilience**: Comprehensive fallback strategies for robust operation
 - **API Completeness**: Full Simple Calendar API surface with 50+ methods
 
+### Seasons & Stars Integration
+The bridge integrates with [Seasons & Stars](https://github.com/rayners/fvtt-seasons-and-stars) using the Integration Interface pattern, which provides clean separation between calendar modules and compatibility bridges:
+
+- **Clean API Access**: Bridge uses `game.seasonsStars.integration` for standardized calendar operations
+- **No Direct Dependencies**: S&S has no knowledge of Simple Calendar or this bridge
+- **Extensible Design**: S&S integration interface can support multiple compatibility systems
+- **Robust Error Handling**: Bridge adapts to S&S capabilities through feature detection
+
+Key integration points include calendar date conversion, time advancement, widget button management, and note storage through S&S's public APIs.
+
 ## Recent Development Sessions
 
 ### Current Session: TypeScript v13 Infrastructure Addition ✅ COMPLETED
@@ -201,6 +211,31 @@
 - **Graceful Degradation**: Fallback to Foundry time when calendar unavailable
 - **Version Compatibility**: Feature detection and compatibility checking
 
+### Seasons & Stars Architecture Integration
+Based on the comprehensive architecture documented in the [Seasons & Stars repository](https://github.com/rayners/fvtt-seasons-and-stars):
+
+#### Calendar Engine Integration
+- **Core Components**: Bridge interfaces with S&S's CalendarEngine, DateFormatter, TimeConverter, and CalendarManager
+- **Date Arithmetic**: Leverages S&S's robust calendar interpretation and intercalary day support
+- **Time Source**: Uses `game.time.worldTime` as single source of truth through S&S's time management
+- **Monorepo Structure**: S&S's packages-based architecture provides core logic in packages/core/
+
+#### Widget System Integration
+- **Widget Factory**: Bridge adds sidebar buttons to S&S's CalendarWidget, CalendarMiniWidget, and CalendarGridWidget
+- **UI Integration**: Utilizes S&S's element-specific positioning and automatic fallback positioning
+- **Event Updates**: Hooks into S&S's event-driven update system with debouncing
+
+#### System Compatibility Layer
+- **Game System Adapters**: Bridge benefits from S&S's BridgeIntegration and CompatibilityManager
+- **WorldTime Transformation**: Leverages S&S's PF2e worldTime transform and other system integrations
+- **Cross-System Support**: Bridge inherits S&S's support for PF2e, D&D 5e, WFRP, and other systems
+
+#### Notes Management Integration
+- **Notes System**: Bridge creates notes using S&S's NotesManager, NoteDocument, and NoteStorage
+- **Performance**: Utilizes S&S's NotePerformanceOptimizer for large dataset optimization
+- **Categories & Permissions**: Leverages S&S's NoteCategories and NotePermissions systems
+- **Search Capabilities**: Bridge-created notes benefit from S&S's NoteSearch functionality
+
 ### Simple Calendar API Implementation
 - **100% API Coverage**: All methods from Simple Calendar v1.x and v2.x
 - **Data Format Translation**: Conversion between S&S (1-based) and SC (0-based) indexing
@@ -234,7 +269,22 @@ src/
 - **API Exposure**: window.SimpleCalendar global object
 - **Error Recovery**: Comprehensive fallback strategies
 
-This architecture enables seamless Simple Calendar compatibility while maintaining clean separation between the bridge and underlying calendar implementations.
+### Development Standards Alignment
+Following patterns established in [Seasons & Stars development standards](https://github.com/rayners/fvtt-seasons-and-stars):
+
+#### Testing Strategy
+- **TDD Workflow**: Tests before implementation for new features, mirroring S&S's comprehensive test suite approach
+- **Integration Testing**: All calendar API interactions tested, building on S&S's system adapter testing patterns
+- **Round-trip Validation**: Date conversion testing prevents data loss bugs, following S&S's critical test scenarios
+- **Cross-System Testing**: Multi-calendar validation across S&S supported systems
+
+#### Quality Requirements
+- **Documentation Accuracy**: All API compatibility claims verified against actual S&S implementation
+- **Version References**: Generic, verifiable version references following S&S documentation standards
+- **Error Handling**: Comprehensive fallback strategies matching S&S's graceful degradation patterns
+- **Performance**: Bundle size optimization to minimize Foundry load impact, consistent with S&S practices
+
+This architecture enables seamless Simple Calendar compatibility while maintaining clean separation between the bridge and underlying calendar implementations, leveraging the robust foundation provided by Seasons & Stars.
 
 ## Documentation and Positioning Guidelines
 
