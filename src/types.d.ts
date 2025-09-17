@@ -135,12 +135,21 @@ declare global {
       api: SimpleCalendarAPI;
       Hooks: SimpleCalendarHooks;
     };
+    SeasonsStars?: any;
+    SeasonsAndStars?: any;
+    SeasonsStarsCore?: any;
   }
 
   interface Game {
     seasonsStars?: {
-      api: any;
-      manager: any;
+      api?: any;
+      manager?: any;
+      integration?: any;
+    };
+    seasonsAndStars?: {
+      api?: any;
+      manager?: any;
+      integration?: any;
     };
   }
 }

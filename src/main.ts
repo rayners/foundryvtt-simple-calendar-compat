@@ -8,6 +8,11 @@ import { SeasonsStarsIntegrationProvider } from './providers/seasons-stars-integ
 import { SimpleCalendarAPIBridge, Icons } from './api/simple-calendar-api';
 import { HookBridge } from './api/hooks';
 import type { CalendarProvider } from './types';
+import {
+  collectSeasonsStarsExposure,
+  resolveSeasonsStarsAPI,
+  resolveSeasonsStarsWidgetClass,
+} from './utils/seasons-stars';
 
 /**
  * CRITICAL: Expose SimpleCalendar immediately at module parse time
@@ -159,7 +164,12 @@ class SimpleCalendarCompatibilityBridge {
   private detectCalendarProvider(): CalendarProvider | null {
     console.log('🌉 Detecting calendar providers...');
     console.log('🌉 Available modules:', Array.from(game.modules?.keys() || []));
-    console.log('🌉 game.seasonsStars available:', !!(game as any).seasonsStars);
+    const exposure = collectSeasonsStarsExposure();
+    console.log('🌉 Seasons & Stars exposure debug:', {
+      hasGlobal: !!exposure.global,
+      hasModule: !!exposure.module,
+      hasNamespace: !!exposure.namespace,
+    });
 
     // Priority 1: Seasons & Stars Integration Interface (v2.0+)
     if (SeasonsStarsIntegrationProvider.isAvailable()) {
@@ -450,7 +460,7 @@ class SimpleCalendarCompatibilityBridge {
       });
 
       // Check if Simple Weather has registered listeners for this hook
-      const hookListeners = Hooks._hooks?.['renderMainApp'] || [];
+      const hookListeners = (Hooks as any)._hooks?.['renderMainApp'] || [];
       console.log(
         '🌉 Simple Calendar Compatibility Bridge | renderMainApp hook listeners:',
         hookListeners.length
@@ -467,7 +477,7 @@ class SimpleCalendarCompatibilityBridge {
   /**
    * Add Simple Calendar CSS classes and structure to a widget
    */
-  private addSimpleCalendarCompatibility($widget: JQuery): void {
+  private addSimpleCalendarCompatibility($widget: JQuery<HTMLElement | Element>): void {
     console.log(
       '🌉 Simple Calendar Compatibility Bridge | Adding compatibility to widget:',
       $widget.get(0)
@@ -499,7 +509,7 @@ class SimpleCalendarCompatibilityBridge {
     let $windowContent = $widget.find('.window-content');
     if (!$windowContent.length) {
       // Find the main content area and wrap it or use the widget itself
-      $windowContent = $widget.hasClass('window-content') ? $widget : $widget;
+      $windowContent = $widget as JQuery<HTMLElement>;
       $windowContent.addClass('window-content');
       console.log('🌉 Simple Calendar Compatibility Bridge | Added window-content class');
     }
@@ -527,7 +537,7 @@ class SimpleCalendarCompatibilityBridge {
   /**
    * Add any existing sidebar buttons to a specific widget
    */
-  private addExistingSidebarButtons($widget: JQuery): void {
+  private addExistingSidebarButtons($widget: JQuery<HTMLElement | Element>): void {
     if (this.api?.sidebarButtons && this.api.sidebarButtons.length > 0) {
       console.log(
         `🌉 Simple Calendar Compatibility Bridge | Adding ${this.api.sidebarButtons.length} sidebar buttons to widget`
@@ -550,20 +560,24 @@ class SimpleCalendarCompatibilityBridge {
    * Add a button to a specific widget using proper widget API when possible
    */
   private addButtonToSpecificWidget(
-    $widget: JQuery,
+    $widget: JQuery<HTMLElement | Element>,
     name: string,
     icon: string,
     tooltip: string,
     callback: Function
   ): void {
     // First try to use Seasons & Stars widget API directly
-    if ($widget.hasClass('calendar-widget') && (window as any).SeasonsStars?.CalendarWidget) {
+    const CalendarWidgetClass = resolveSeasonsStarsWidgetClass('CalendarWidget');
+    if ($widget.hasClass('calendar-widget') && CalendarWidgetClass) {
       console.log(
         `🌉 Simple Calendar Compatibility Bridge | Using Seasons & Stars CalendarWidget API for button "${name}"`
       );
       try {
-        const CalendarWidgetClass = (window as any).SeasonsStars.CalendarWidget;
-        const calendarWidget = CalendarWidgetClass.getInstance();
+        const calendarWidget =
+          CalendarWidgetClass.getInstance?.() ||
+          CalendarWidgetClass.instance ||
+          CalendarWidgetClass.singleton ||
+          null;
 
         if (calendarWidget && typeof calendarWidget.addSidebarButton === 'function') {
           // Check if button already exists to avoid duplicates
@@ -607,7 +621,7 @@ class SimpleCalendarCompatibilityBridge {
    * Fallback method: Add button via DOM manipulation
    */
   private addButtonToSpecificWidgetViaDOM(
-    $widget: JQuery,
+    $widget: JQuery<HTMLElement | Element>,
     name: string,
     icon: string,
     tooltip: string,
@@ -628,7 +642,7 @@ class SimpleCalendarCompatibilityBridge {
     );
 
     // Look for a good place to add the button
-    let $targetLocation: JQuery<HTMLElement>;
+    let $targetLocation: JQuery<HTMLElement | Element> | null = null;
 
     if ($widget.hasClass('calendar-widget')) {
       // For full calendar widget, try window-header first
@@ -693,7 +707,8 @@ class SimpleCalendarCompatibilityBridge {
       });
 
     // Add to target location
-    $targetLocation.append($button);
+    const $finalTarget = $targetLocation ?? $widget;
+    $finalTarget.append($button);
 
     console.log(
       `🌉 Simple Calendar Compatibility Bridge | Added "${name}" button to widget successfully via DOM`
@@ -825,7 +840,8 @@ Hooks.once('ready', async () => {
     );
 
     // Check if Seasons & Stars API is already available
-    if (game.seasonsStars?.api) {
+    const seasonsStarsAPI = resolveSeasonsStarsAPI();
+    if (seasonsStarsAPI) {
       console.log(
         '🌉 Simple Calendar Compatibility Bridge | Seasons & Stars API already available, initializing immediately'
       );
@@ -867,7 +883,8 @@ Hooks.once('ready', async () => {
       const maxWaitTime = 5000; // 5 seconds max wait
 
       const checkForAPI = () => {
-        if (game.seasonsStars?.api) {
+        const api = resolveSeasonsStarsAPI();
+        if (api) {
           console.log(
             '🌉 Simple Calendar Compatibility Bridge | Seasons & Stars API now available'
           );

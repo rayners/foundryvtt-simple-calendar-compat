@@ -3,6 +3,7 @@
  */
 
 import type { SimpleCalendarAPI, SimpleCalendarDate } from '../types';
+import { collectSeasonsStarsExposure, resolveSeasonsStarsIntegration } from '../utils/seasons-stars';
 
 // Simple Calendar Icon Constants - Required by Simple Weather and other modules
 export const Icons = {
@@ -165,21 +166,9 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
    */
   private detectSeasonsStars(): SeasonsStarsIntegration | null {
     try {
-      // Try S&S integration interface first (v2.0+)
-      const integration = (game as any).seasonsStars?.integration;
-      if (integration && integration.isAvailable) {
-        return integration;
-      }
-
-      // Try static detection method
-      if ((window as any).SeasonsStars?.integration?.detect) {
-        const detected = (window as any).SeasonsStars.integration.detect();
-        if (detected && detected.isAvailable) {
-          return detected;
-        }
-      }
-
-      return null;
+      const exposure = collectSeasonsStarsExposure();
+      const integration = resolveSeasonsStarsIntegration(exposure);
+      return integration || null;
     } catch (error) {
       console.error('Failed to detect S&S integration:', error);
       return null;
@@ -788,7 +777,7 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
    * Add Simple Calendar compatibility DOM structure via direct DOM manipulation
    * Used when S&S widget API is not available
    */
-  private addSimpleCalendarCompatibilityViaDOM($widget: JQuery): void {
+  private addSimpleCalendarCompatibilityViaDOM($widget: JQuery<HTMLElement | Element>): void {
     try {
       // Check if already processed to avoid duplicate work
       if ($widget.hasClass('simple-calendar-compat-processed')) {
@@ -1029,8 +1018,15 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
 
       // Force S&S storage system to rebuild its index to include new notes
       // This uses S&S's existing public API without making S&S aware of the bridge
-      if (game.seasonsStars?.notes?.storage) {
-        game.seasonsStars.notes.storage.rebuildIndex();
+      const exposure = collectSeasonsStarsExposure();
+      const notesStorage =
+        exposure.global?.notes?.storage ||
+        exposure.module?.api?.notes?.storage ||
+        exposure.namespace?.notes?.storage ||
+        null;
+
+      if (notesStorage?.rebuildIndex) {
+        notesStorage.rebuildIndex();
         console.log('🌉 Simple Calendar Bridge: Triggered S&S storage reindex');
       }
 

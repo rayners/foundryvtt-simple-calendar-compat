@@ -43,12 +43,19 @@ interface Game {
   time: GameTime;
   i18n: Localization;
   journal: Collection<JournalEntry>;
+  folders?: any;
 
   // Simple Calendar API exposure point
   simpleCalendar?: any;
 
   // Seasons & Stars integration point
   seasonsStars?: {
+    api?: any;
+    manager?: any;
+    integration?: any;
+  };
+  seasonsAndStars?: {
+    api?: any;
     manager?: any;
     integration?: any;
   };
@@ -155,6 +162,10 @@ declare global {
   interface Window {
     SimpleCalendar?: any;
     seasonsStars?: any;
+    seasonsAndStars?: any;
+    SeasonsStars?: any;
+    SeasonsAndStars?: any;
+    SeasonsStarsCore?: any;
   }
 }
 
