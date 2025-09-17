@@ -864,12 +864,20 @@ Hooks.once('ready', async () => {
       console.log('🌉 Simple Calendar Compatibility Bridge | Waiting for Seasons & Stars API...');
       // Use a polling approach to wait for the API to become available
       const startTime = Date.now();
-      const maxWaitTime = 5000; // 5 seconds max wait
+      const maxWaitTime = 30000; // 30 seconds max wait - increased from 5s for environments with many modules
+      let checkCount = 0;
 
       const checkForAPI = () => {
-        if (game.seasonsStars?.api) {
+        checkCount++;
+        
+        // Check multiple possible API locations for better compatibility
+        const apiReady = game.seasonsStars?.api || 
+                        (window as any).SeasonsStars?.integration?.isAvailable ||
+                        (game as any).seasonsStars?.integration?.isAvailable;
+        
+        if (apiReady) {
           console.log(
-            '🌉 Simple Calendar Compatibility Bridge | Seasons & Stars API now available'
+            `🌉 Simple Calendar Compatibility Bridge | Seasons & Stars API now available (after ${checkCount} checks, ${Date.now() - startTime}ms)`
           );
           compatBridge.initialize().catch(error => {
             console.error('🌉 Simple Calendar Compatibility Bridge | Failed to initialize:', error);
@@ -879,15 +887,16 @@ Hooks.once('ready', async () => {
           });
         } else if (Date.now() - startTime > maxWaitTime) {
           console.warn(
-            '🌉 Simple Calendar Compatibility Bridge | Timeout waiting for Seasons & Stars API'
+            `🌉 Simple Calendar Compatibility Bridge | Timeout waiting for Seasons & Stars API after ${maxWaitTime}ms and ${checkCount} checks`
           );
           // Try to initialize anyway - this will trigger the "no provider found" path
           compatBridge.initialize().catch(error => {
             console.error('🌉 Simple Calendar Compatibility Bridge | Failed to initialize:', error);
           });
         } else {
-          // Check again in next frame
-          requestAnimationFrame(checkForAPI);
+          // Use a more aggressive check interval for the first 10 seconds
+          const checkInterval = Date.now() - startTime < 10000 ? 100 : 500;
+          setTimeout(checkForAPI, checkInterval);
         }
       };
       checkForAPI();

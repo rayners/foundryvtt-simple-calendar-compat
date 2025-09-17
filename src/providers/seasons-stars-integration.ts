@@ -328,9 +328,11 @@ export class SeasonsStarsIntegrationProvider implements CalendarProvider {
       return false;
     }
 
-    // Check for either new integration or legacy API
-    const hasIntegration = !!(game as any).seasonsStars?.integration?.isAvailable;
-    const hasLegacyAPI = !!(game as any).seasonsStars?.api;
+    // Check for either new integration or legacy API in multiple locations
+    const hasIntegration = !!(game as any).seasonsStars?.integration?.isAvailable ||
+                          !!(window as any).SeasonsStars?.integration?.isAvailable;
+    const hasLegacyAPI = !!(game as any).seasonsStars?.api ||
+                        !!(window as any).SeasonsStars?.api;
 
     return hasIntegration || hasLegacyAPI;
   }
