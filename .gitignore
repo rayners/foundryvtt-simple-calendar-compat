@@ -44,4 +44,4 @@ tmp/
 temp/
 
 # Development memory (should not be in repository)
-CLAUDE.md
+!CLAUDE.md
