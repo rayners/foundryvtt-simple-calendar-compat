@@ -557,7 +557,10 @@ class SimpleCalendarCompatibilityBridge {
     callback: Function
   ): void {
     // First try to use Seasons & Stars widget API directly
-    if ($widget.hasClass('calendar-widget') && game.seasonsStars?.manager?.widgets?.CalendarWidget) {
+    if (
+      $widget.hasClass('calendar-widget') &&
+      game.seasonsStars?.manager?.widgets?.CalendarWidget
+    ) {
       console.log(
         `🌉 Simple Calendar Compatibility Bridge | Using Seasons & Stars CalendarWidget API for button "${name}"`
       );
@@ -813,9 +816,7 @@ Hooks.once('ready', async () => {
 
   // Function to initialize the bridge
   const initializeBridge = async () => {
-    console.log(
-      '🌉 Simple Calendar Compatibility Bridge | Starting bridge initialization'
-    );
+    console.log('🌉 Simple Calendar Compatibility Bridge | Starting bridge initialization');
 
     // Check for Simple Weather hook listeners before and after our initialization
     const preInitListeners = (Hooks as any)._hooks?.['renderMainApp']?.length || 0;

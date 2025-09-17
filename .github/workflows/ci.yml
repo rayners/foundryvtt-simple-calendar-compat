@@ -9,19 +9,25 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     strategy:
       matrix:
         node-version: [18, 20]
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Run CI Pipeline
-        uses: rayners/foundry-module-actions/ci@v3
+        uses: rayners/foundry-module-actions/ci@v5
         with:
           node-version: ${{ matrix.node-version }}
-          github-packages: false
-          codecov: true
-          coverage-node-version: '18'
+          github-packages: true
+          codecov: ${{ matrix.node-version == '20' }}
+          codecov-slug: rayners/foundryvtt-simple-calendar-compat
+          coverage-node-version: '20'
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
+          junit-output: ${{ matrix.node-version == '20' }}
+          test-command: 'npm run test:coverage:junit'

@@ -132,7 +132,6 @@ When implementing or modifying API methods:
    ```
 
 2. **Preserve Data Formats**
-
    - Simple Calendar uses 0-based months/days
    - Seasons & Stars uses 1-based months/days
    - Bridge must handle conversion accurately
