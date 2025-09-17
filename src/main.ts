@@ -857,69 +857,8 @@ Hooks.once('ready', async () => {
   };
 
   // Check if Seasons & Stars API is already available
-  if (game.seasonsStars?.api || (game as any).seasonsStars?.integration?.isAvailable) {
-    console.log(
-      '🌉 Simple Calendar Compatibility Bridge | Seasons & Stars API already available, initializing immediately'
-    );
-    // Small delay to ensure Simple Weather has initialized
-    setTimeout(initializeBridge, 500);
-  } else {
-    console.log('🌉 Simple Calendar Compatibility Bridge | Waiting for Seasons & Stars API...');
-    
-    let initialized = false;
-    const startTime = Date.now();
-    const maxWaitTime = 30000; // 30 seconds max wait for environments with many modules
-    
-    // Set up a hook listener for when S&S is ready
-    const readyHookId = Hooks.once('seasons-and-stars:ready', () => {
-      if (!initialized) {
-        initialized = true;
-        console.log(
-          `🌉 Simple Calendar Compatibility Bridge | Seasons & Stars ready hook fired (after ${Date.now() - startTime}ms)`
-        );
-        initializeBridge();
-      }
-    });
-    
-    // Also check for the integration ready event
-    const integrationReadyHookId = Hooks.once('seasons-and-stars:integration:ready', () => {
-      if (!initialized) {
-        initialized = true;
-        console.log(
-          `🌉 Simple Calendar Compatibility Bridge | Seasons & Stars integration ready hook fired (after ${Date.now() - startTime}ms)`
-        );
-        initializeBridge();
-      }
-    });
-    
-    // Set up a timeout as a fallback if the hooks don't fire
-    setTimeout(() => {
-      if (!initialized) {
-        console.warn(
-          `🌉 Simple Calendar Compatibility Bridge | Timeout waiting for Seasons & Stars ready hooks after ${maxWaitTime}ms`
-        );
-        
-        // Check one more time if the API became available
-        const apiReady = game.seasonsStars?.api || 
-                        (window as any).SeasonsStars?.integration?.isAvailable ||
-                        (game as any).seasonsStars?.integration?.isAvailable;
-        
-        if (apiReady) {
-          console.log(
-            '🌉 Simple Calendar Compatibility Bridge | API found after timeout, initializing'
-          );
-          initialized = true;
-          initializeBridge();
-        } else {
-          // Try to initialize anyway - this will trigger the "no provider found" path
-          initialized = true;
-          compatBridge.initialize().catch(error => {
-            console.error('🌉 Simple Calendar Compatibility Bridge | Failed to initialize:', error);
-          });
-        }
-      }
-    }, maxWaitTime);
-  }
+  // All modules are loaded by the ready hook - initialize immediately
+  initializeBridge();
 });
 
 /**
