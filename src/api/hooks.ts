@@ -72,7 +72,7 @@ export class HookBridge {
     Hooks.on('updateWorldTime', this.onWorldTimeUpdate.bind(this));
 
     // Listen for setting changes that might affect calendar
-    Hooks.on('updateSetting', this.onSettingUpdate.bind(this));
+    Hooks.on('clientSettingChanged', this.onSettingUpdate.bind(this));
   }
 
   /**
@@ -113,9 +113,9 @@ export class HookBridge {
   /**
    * Handle setting updates that might affect calendar display
    */
-  private onSettingUpdate(setting: any): void {
+  private onSettingUpdate(key: string, value: any, options: object): void {
     // Check if it's a calendar-related setting
-    if (setting?.key?.includes('calendar') || setting?.key?.includes('time')) {
+    if (key?.includes('calendar') || key?.includes('time')) {
       this.onDateChanged();
     }
   }

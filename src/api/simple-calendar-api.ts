@@ -172,8 +172,8 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
       }
 
       // Try static detection method
-      if ((window as any).SeasonsStars?.integration?.detect) {
-        const detected = (window as any).SeasonsStars.integration.detect();
+      if (game.seasonsStars?.integration?.detect) {
+        const detected = game.seasonsStars.integration.detect();
         if (detected && detected.isAvailable) {
           return detected;
         }

@@ -22,7 +22,7 @@ export class SeasonsStarsProvider extends BaseCalendarProvider {
     console.log('  - module:', module);
     console.log('  - module.active:', module?.active);
     console.log('  - game.seasonsStars:', game.seasonsStars);
-    console.log('  - game.seasonsStars.api:', api);
+    console.log('  - api found:', !!api);
 
     return !!(module?.active && api);
   }
