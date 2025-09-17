@@ -811,10 +811,10 @@ Hooks.once('ready', async () => {
     globalThisType: typeof (globalThis as any).SimpleCalendar,
   });
 
-  // Small delay to ensure Simple Weather has registered its listeners
-  setTimeout(async () => {
+  // Function to initialize the bridge
+  const initializeBridge = async () => {
     console.log(
-      '🌉 Simple Calendar Compatibility Bridge | Starting bridge initialization after module setup delay'
+      '🌉 Simple Calendar Compatibility Bridge | Starting bridge initialization'
     );
 
     // Check for Simple Weather hook listeners before and after our initialization
@@ -824,84 +824,102 @@ Hooks.once('ready', async () => {
       preInitListeners
     );
 
-    // Check if Seasons & Stars API is already available
-    if (game.seasonsStars?.api) {
-      console.log(
-        '🌉 Simple Calendar Compatibility Bridge | Seasons & Stars API already available, initializing immediately'
-      );
+    try {
+      await compatBridge.initialize();
 
-      try {
-        await compatBridge.initialize();
-
-        // After initialization, wait for Simple Weather to register its hooks (triggered by SimpleCalendar.Hooks.Init)
-        setTimeout(() => {
-          const postInitListeners = (Hooks as any)._hooks?.['renderMainApp']?.length || 0;
-          console.log(
-            '🌉 Simple Calendar Compatibility Bridge | renderMainApp hook listeners after init:',
-            postInitListeners
-          );
-
-          if (postInitListeners > preInitListeners) {
-            console.log(
-              '🌉 Simple Calendar Compatibility Bridge | Simple Weather has registered its hooks, triggering widget integration'
-            );
-            // Simple Weather has registered, now trigger the widget integration
-            compatBridge.integrateWithSeasonsStarsWidgets();
-          } else {
-            console.warn(
-              '🌉 Simple Calendar Compatibility Bridge | Simple Weather has not registered renderMainApp hooks yet, trying anyway'
-            );
-            compatBridge.integrateWithSeasonsStarsWidgets();
-          }
-        }, 100); // Small delay for Simple Weather to register its hooks
-      } catch (error) {
-        console.error('🌉 Simple Calendar Compatibility Bridge | Failed to initialize:', error);
-        ui.notifications?.error(
-          'Simple Calendar Compatibility Bridge failed to initialize. Check console for details.'
+      // After initialization, wait for Simple Weather to register its hooks (triggered by SimpleCalendar.Hooks.Init)
+      setTimeout(() => {
+        const postInitListeners = (Hooks as any)._hooks?.['renderMainApp']?.length || 0;
+        console.log(
+          '🌉 Simple Calendar Compatibility Bridge | renderMainApp hook listeners after init:',
+          postInitListeners
         );
-      }
-    } else {
-      console.log('🌉 Simple Calendar Compatibility Bridge | Waiting for Seasons & Stars API...');
-      // Use a polling approach to wait for the API to become available
-      const startTime = Date.now();
-      const maxWaitTime = 30000; // 30 seconds max wait - increased from 5s for environments with many modules
-      let checkCount = 0;
 
-      const checkForAPI = () => {
-        checkCount++;
+        if (postInitListeners > preInitListeners) {
+          console.log(
+            '🌉 Simple Calendar Compatibility Bridge | Simple Weather has registered its hooks, triggering widget integration'
+          );
+          // Simple Weather has registered, now trigger the widget integration
+          compatBridge.integrateWithSeasonsStarsWidgets();
+        } else {
+          console.warn(
+            '🌉 Simple Calendar Compatibility Bridge | Simple Weather has not registered renderMainApp hooks yet, trying anyway'
+          );
+          compatBridge.integrateWithSeasonsStarsWidgets();
+        }
+      }, 100); // Small delay for Simple Weather to register its hooks
+    } catch (error) {
+      console.error('🌉 Simple Calendar Compatibility Bridge | Failed to initialize:', error);
+      ui.notifications?.error(
+        'Simple Calendar Compatibility Bridge failed to initialize. Check console for details.'
+      );
+    }
+  };
+
+  // Check if Seasons & Stars API is already available
+  if (game.seasonsStars?.api || (game as any).seasonsStars?.integration?.isAvailable) {
+    console.log(
+      '🌉 Simple Calendar Compatibility Bridge | Seasons & Stars API already available, initializing immediately'
+    );
+    // Small delay to ensure Simple Weather has initialized
+    setTimeout(initializeBridge, 500);
+  } else {
+    console.log('🌉 Simple Calendar Compatibility Bridge | Waiting for Seasons & Stars API...');
+    
+    let initialized = false;
+    const startTime = Date.now();
+    const maxWaitTime = 30000; // 30 seconds max wait for environments with many modules
+    
+    // Set up a hook listener for when S&S is ready
+    const readyHookId = Hooks.once('seasons-and-stars:ready', () => {
+      if (!initialized) {
+        initialized = true;
+        console.log(
+          `🌉 Simple Calendar Compatibility Bridge | Seasons & Stars ready hook fired (after ${Date.now() - startTime}ms)`
+        );
+        initializeBridge();
+      }
+    });
+    
+    // Also check for the integration ready event
+    const integrationReadyHookId = Hooks.once('seasons-and-stars:integration:ready', () => {
+      if (!initialized) {
+        initialized = true;
+        console.log(
+          `🌉 Simple Calendar Compatibility Bridge | Seasons & Stars integration ready hook fired (after ${Date.now() - startTime}ms)`
+        );
+        initializeBridge();
+      }
+    });
+    
+    // Set up a timeout as a fallback if the hooks don't fire
+    setTimeout(() => {
+      if (!initialized) {
+        console.warn(
+          `🌉 Simple Calendar Compatibility Bridge | Timeout waiting for Seasons & Stars ready hooks after ${maxWaitTime}ms`
+        );
         
-        // Check multiple possible API locations for better compatibility
+        // Check one more time if the API became available
         const apiReady = game.seasonsStars?.api || 
                         (window as any).SeasonsStars?.integration?.isAvailable ||
                         (game as any).seasonsStars?.integration?.isAvailable;
         
         if (apiReady) {
           console.log(
-            `🌉 Simple Calendar Compatibility Bridge | Seasons & Stars API now available (after ${checkCount} checks, ${Date.now() - startTime}ms)`
+            '🌉 Simple Calendar Compatibility Bridge | API found after timeout, initializing'
           );
-          compatBridge.initialize().catch(error => {
-            console.error('🌉 Simple Calendar Compatibility Bridge | Failed to initialize:', error);
-            ui.notifications?.error(
-              'Simple Calendar Compatibility Bridge failed to initialize. Check console for details.'
-            );
-          });
-        } else if (Date.now() - startTime > maxWaitTime) {
-          console.warn(
-            `🌉 Simple Calendar Compatibility Bridge | Timeout waiting for Seasons & Stars API after ${maxWaitTime}ms and ${checkCount} checks`
-          );
-          // Try to initialize anyway - this will trigger the "no provider found" path
-          compatBridge.initialize().catch(error => {
-            console.error('🌉 Simple Calendar Compatibility Bridge | Failed to initialize:', error);
-          });
+          initialized = true;
+          initializeBridge();
         } else {
-          // Use a more aggressive check interval for the first 10 seconds
-          const checkInterval = Date.now() - startTime < 10000 ? 100 : 500;
-          setTimeout(checkForAPI, checkInterval);
+          // Try to initialize anyway - this will trigger the "no provider found" path
+          initialized = true;
+          compatBridge.initialize().catch(error => {
+            console.error('🌉 Simple Calendar Compatibility Bridge | Failed to initialize:', error);
+          });
         }
-      };
-      checkForAPI();
-    }
-  }, 500); // Initial delay, then we'll poll for Simple Weather
+      }
+    }, maxWaitTime);
+  }
 });
 
 /**
