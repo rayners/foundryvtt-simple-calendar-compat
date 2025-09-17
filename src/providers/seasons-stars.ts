@@ -16,14 +16,12 @@ export class SeasonsStarsProvider extends BaseCalendarProvider {
 
   static isAvailable(): boolean {
     const module = game.modules.get('seasons-and-stars');
-    // Check multiple locations where the API might be available
-    const api = game.seasonsStars?.api || (window as any).SeasonsStars?.api;
+    const api = game.seasonsStars?.api;
 
     console.log('🌟 Seasons & Stars Provider Debug:');
     console.log('  - module:', module);
     console.log('  - module.active:', module?.active);
     console.log('  - game.seasonsStars:', game.seasonsStars);
-    console.log('  - window.SeasonsStars:', (window as any).SeasonsStars);
     console.log('  - api found:', !!api);
 
     return !!(module?.active && api);

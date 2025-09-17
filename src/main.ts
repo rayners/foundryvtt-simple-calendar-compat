@@ -557,12 +557,12 @@ class SimpleCalendarCompatibilityBridge {
     callback: Function
   ): void {
     // First try to use Seasons & Stars widget API directly
-    if ($widget.hasClass('calendar-widget') && (window as any).SeasonsStars?.CalendarWidget) {
+    if ($widget.hasClass('calendar-widget') && game.seasonsStars?.manager?.widgets?.CalendarWidget) {
       console.log(
         `🌉 Simple Calendar Compatibility Bridge | Using Seasons & Stars CalendarWidget API for button "${name}"`
       );
       try {
-        const CalendarWidgetClass = (window as any).SeasonsStars.CalendarWidget;
+        const CalendarWidgetClass = game.seasonsStars.manager.widgets.CalendarWidget;
         const calendarWidget = CalendarWidgetClass.getInstance();
 
         if (calendarWidget && typeof calendarWidget.addSidebarButton === 'function') {

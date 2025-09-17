@@ -123,8 +123,8 @@ export class SeasonsStarsIntegrationProvider implements CalendarProvider {
       }
 
       // Try static detection method
-      if ((window as any).SeasonsStars?.integration?.detect) {
-        const detected = (window as any).SeasonsStars.integration.detect();
+      if (game.seasonsStars?.integration?.detect) {
+        const detected = game.seasonsStars.integration.detect();
         if (detected && detected.isAvailable) {
           console.log('Bridge: Detected S&S integration v' + detected.version);
           return detected;
@@ -211,7 +211,7 @@ export class SeasonsStarsIntegrationProvider implements CalendarProvider {
       offWidgetChange: () => {},
 
       wrapWidget(widgetClassName: string): BridgeCalendarWidget | null {
-        const widgetClass = (window as any).SeasonsStars?.[widgetClassName];
+        const widgetClass = game.seasonsStars?.manager?.widgets?.[widgetClassName];
         const instance = widgetClass?.getInstance?.();
 
         if (!instance) return null;
@@ -270,7 +270,7 @@ export class SeasonsStarsIntegrationProvider implements CalendarProvider {
     const widgets = ['CalendarWidget', 'CalendarMiniWidget', 'CalendarGridWidget'];
 
     for (const widgetName of widgets) {
-      const widgetClass = (window as any).SeasonsStars?.[widgetName];
+      const widgetClass = game.seasonsStars?.manager?.widgets?.[widgetName];
       const instance = widgetClass?.getInstance?.();
 
       if (instance && typeof instance.addSidebarButton === 'function') {
@@ -328,13 +328,11 @@ export class SeasonsStarsIntegrationProvider implements CalendarProvider {
       return false;
     }
 
-    // Check for either new integration or legacy API in multiple locations
-    const hasIntegration = !!(game as any).seasonsStars?.integration?.isAvailable ||
-                          !!(window as any).SeasonsStars?.integration?.isAvailable;
-    const hasLegacyAPI = !!(game as any).seasonsStars?.api ||
-                        !!(window as any).SeasonsStars?.api;
+    // Check for current S&S API
+    const hasIntegration = !!game.seasonsStars?.integration?.isAvailable;
+    const hasAPI = !!game.seasonsStars?.api;
 
-    return hasIntegration || hasLegacyAPI;
+    return hasIntegration || hasAPI;
   }
 
   /**
