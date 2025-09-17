@@ -4,6 +4,11 @@
 
 import { BaseCalendarProvider } from './base-provider';
 import type { CalendarDate } from '../types';
+import {
+  collectSeasonsStarsExposure,
+  resolveSeasonsStarsAPI,
+  resolveSeasonsStarsVersion,
+} from '../utils/seasons-stars';
 
 export class SeasonsStarsProvider extends BaseCalendarProvider {
   readonly name = 'Seasons & Stars';
@@ -11,25 +16,37 @@ export class SeasonsStarsProvider extends BaseCalendarProvider {
 
   constructor() {
     super();
-    this.version = game.modules.get('seasons-and-stars')?.version || '0.1.0';
+    const exposure = collectSeasonsStarsExposure();
+    this.version = resolveSeasonsStarsVersion(exposure) || '0.1.0';
+  }
+
+  private resolveAPI(): any | null {
+    return resolveSeasonsStarsAPI();
   }
 
   static isAvailable(): boolean {
-    const module = game.modules.get('seasons-and-stars');
-    const api = game.seasonsStars?.api;
+    const exposure = collectSeasonsStarsExposure();
+    const module = exposure.module;
+    const api = resolveSeasonsStarsAPI(exposure);
 
     console.log('🌟 Seasons & Stars Provider Debug:');
     console.log('  - module:', module);
-    console.log('  - module.active:', module?.active);
-    console.log('  - game.seasonsStars:', game.seasonsStars);
-    console.log('  - game.seasonsStars.api:', api);
+    console.log('  - module?.active:', module?.active);
+    console.log('  - global exposure:', exposure.global);
+    console.log('  - namespace exposure:', exposure.namespace);
+    console.log('  - resolved API:', api);
 
-    return !!(module?.active && api);
+    if (module) {
+      return !!(module.active && api);
+    }
+
+    return !!api;
   }
 
   getCurrentDate(): CalendarDate | null {
     try {
-      const ssDate = game.seasonsStars?.api?.getCurrentDate();
+      const api = this.resolveAPI();
+      const ssDate = api?.getCurrentDate?.();
       if (!ssDate) return null;
 
       return {
@@ -47,7 +64,11 @@ export class SeasonsStarsProvider extends BaseCalendarProvider {
 
   worldTimeToDate(timestamp: number): CalendarDate {
     try {
-      const ssDate = game.seasonsStars.api.worldTimeToDate(timestamp);
+      const api = this.resolveAPI();
+      if (!api?.worldTimeToDate) {
+        throw new Error('Seasons & Stars API not available');
+      }
+      const ssDate = api.worldTimeToDate(timestamp);
       return {
         year: ssDate.year,
         month: ssDate.month,
@@ -75,7 +96,11 @@ export class SeasonsStarsProvider extends BaseCalendarProvider {
 
   dateToWorldTime(date: CalendarDate): number {
     try {
-      return game.seasonsStars.api.dateToWorldTime(date);
+      const api = this.resolveAPI();
+      if (!api?.dateToWorldTime) {
+        throw new Error('Seasons & Stars API not available');
+      }
+      return api.dateToWorldTime(date);
     } catch (error) {
       console.warn('Failed to convert date to timestamp:', error);
       // Fallback calculation
@@ -96,15 +121,19 @@ export class SeasonsStarsProvider extends BaseCalendarProvider {
         return `${hour}:${minute}`;
       }
 
+      const api = this.resolveAPI();
+
       if (options?.includeTime === false) {
-        return game.seasonsStars?.api?.formatDate
-          ? game.seasonsStars.api.formatDate(date, { includeTime: false })
-          : `${date.day}/${date.month}/${date.year}`;
+        if (api?.formatDate) {
+          return api.formatDate(date, { includeTime: false });
+        }
+        return `${date.day}/${date.month}/${date.year}`;
       }
 
-      return game.seasonsStars?.api?.formatDate
-        ? game.seasonsStars.api.formatDate(date, options)
-        : `${date.day}/${date.month}/${date.year}`;
+      if (api?.formatDate) {
+        return api.formatDate(date, options);
+      }
+      return `${date.day}/${date.month}/${date.year}`;
     } catch (error) {
       console.warn('Failed to format date:', error);
       if (options?.timeOnly) {
@@ -118,7 +147,8 @@ export class SeasonsStarsProvider extends BaseCalendarProvider {
 
   getActiveCalendar(): any {
     try {
-      return game.seasonsStars.api.getActiveCalendar();
+      const api = this.resolveAPI();
+      return api?.getActiveCalendar?.() || null;
     } catch (error) {
       console.warn('Failed to get active calendar:', error);
       return null;
@@ -239,8 +269,9 @@ export class SeasonsStarsProvider extends BaseCalendarProvider {
   // GM time advancement methods
   async advanceDays(days: number): Promise<void> {
     try {
-      if (game.seasonsStars?.api?.advanceDays) {
-        await game.seasonsStars.api.advanceDays(days);
+      const api = this.resolveAPI();
+      if (api?.advanceDays) {
+        await api.advanceDays(days);
       } else {
         console.warn('Seasons & Stars does not support day advancement');
       }
@@ -252,8 +283,9 @@ export class SeasonsStarsProvider extends BaseCalendarProvider {
 
   async advanceHours(hours: number): Promise<void> {
     try {
-      if (game.seasonsStars?.api?.advanceHours) {
-        await game.seasonsStars.api.advanceHours(hours);
+      const api = this.resolveAPI();
+      if (api?.advanceHours) {
+        await api.advanceHours(hours);
       } else {
         console.warn('Seasons & Stars does not support hour advancement');
       }
@@ -265,8 +297,9 @@ export class SeasonsStarsProvider extends BaseCalendarProvider {
 
   async advanceMinutes(minutes: number): Promise<void> {
     try {
-      if (game.seasonsStars?.api?.advanceMinutes) {
-        await game.seasonsStars.api.advanceMinutes(minutes);
+      const api = this.resolveAPI();
+      if (api?.advanceMinutes) {
+        await api.advanceMinutes(minutes);
       } else {
         console.warn('Seasons & Stars does not support minute advancement');
       }

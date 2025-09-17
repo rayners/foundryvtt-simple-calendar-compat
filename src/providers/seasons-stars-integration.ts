@@ -6,6 +6,14 @@
  */
 
 import type { CalendarProvider, CalendarDate } from '../types';
+import {
+  collectSeasonsStarsExposure,
+  resolveSeasonsStarsAPI,
+  resolveSeasonsStarsIntegration,
+  resolveSeasonsStarsVersion,
+  resolveSeasonsStarsWidgetClass,
+  type SeasonsStarsExposure,
+} from '../utils/seasons-stars';
 
 // Integration types (matching S&S interface design)
 interface SeasonsStarsIntegration {
@@ -50,7 +58,12 @@ interface BridgeCalendarWidget {
   readonly id: string;
   readonly isVisible: boolean;
 
-  addSidebarButton(name: string, icon: string, tooltip: string, callback: Function): void;
+  addSidebarButton(
+    name: string,
+    icon: string,
+    tooltip: string,
+    callback: (...args: unknown[]) => unknown
+  ): void;
   removeSidebarButton(name: string): void;
   hasSidebarButton(name: string): boolean;
   getInstance(): any;
@@ -60,7 +73,7 @@ interface SeasonsStarsHooks {
   onDateChanged(callback: (event: DateChangeEvent) => void): void;
   onCalendarChanged(callback: (event: CalendarChangeEvent) => void): void;
   onReady(callback: (event: ReadyEvent) => void): void;
-  off(hookName: string, callback: Function): void;
+  off(hookName: string, callback: (...args: unknown[]) => void): void;
 }
 
 interface DateChangeEvent {
@@ -97,13 +110,15 @@ export class SeasonsStarsIntegrationProvider implements CalendarProvider {
   readonly version: string;
 
   private integration: SeasonsStarsIntegration | null = null;
-  private dateChangeCallback?: Function;
-  private calendarChangeCallback?: Function;
-  private widgetChangeCallback?: Function;
+  private dateChangeCallback?: (event: DateChangeEvent) => void;
+  private calendarChangeCallback?: (event: CalendarChangeEvent) => void;
+  private widgetChangeCallback?: (widgets: SeasonsStarsWidgets) => void;
 
   constructor() {
-    this.integration = this.detectIntegration();
-    this.version = this.integration?.version || '0.0.0';
+    const exposure = collectSeasonsStarsExposure();
+    this.integration = this.detectIntegration(exposure);
+    this.version =
+      resolveSeasonsStarsVersion(exposure, this.integration) || this.integration?.version || '0.0.0';
 
     if (this.integration) {
       this.setupHookListeners();
@@ -113,28 +128,21 @@ export class SeasonsStarsIntegrationProvider implements CalendarProvider {
   /**
    * Detect S&S integration using new interface
    */
-  private detectIntegration(): SeasonsStarsIntegration | null {
+  private detectIntegration(
+    exposure: SeasonsStarsExposure = collectSeasonsStarsExposure()
+  ): SeasonsStarsIntegration | null {
     try {
-      // Try new integration interface first (S&S v2.0+)
-      const integration = (game as any).seasonsStars?.integration;
-      if (integration && integration.isAvailable) {
-        console.log('Bridge: Using S&S integration interface v' + integration.version);
+      const integration = resolveSeasonsStarsIntegration(exposure);
+      if (integration) {
+        const versionLabel = integration.version ?? resolveSeasonsStarsVersion(exposure, integration) ?? 'unknown';
+        console.log('Bridge: Using S&S integration interface v' + versionLabel);
         return integration;
       }
 
-      // Try static detection method
-      if ((window as any).SeasonsStars?.integration?.detect) {
-        const detected = (window as any).SeasonsStars.integration.detect();
-        if (detected && detected.isAvailable) {
-          console.log('Bridge: Detected S&S integration v' + detected.version);
-          return detected;
-        }
-      }
-
-      // Fallback: try to create integration from legacy API
-      if ((game as any).seasonsStars?.api && (game as any).seasonsStars?.manager) {
-        console.log('Bridge: Creating integration wrapper for legacy S&S API');
-        return this.createLegacyIntegrationWrapper();
+      const api = resolveSeasonsStarsAPI(exposure, integration);
+      if (api) {
+        console.log('Bridge: Creating integration wrapper for direct S&S API exposure');
+        return this.createLegacyIntegrationWrapper(api, exposure);
       }
 
       return null;
@@ -147,53 +155,96 @@ export class SeasonsStarsIntegrationProvider implements CalendarProvider {
   /**
    * Create integration wrapper for older S&S versions
    */
-  private createLegacyIntegrationWrapper(): SeasonsStarsIntegration {
-    const api = (game as any).seasonsStars.api;
-    const manager = (game as any).seasonsStars.manager;
+  private createLegacyIntegrationWrapper(
+    api: any,
+    exposure: SeasonsStarsExposure
+  ): SeasonsStarsIntegration {
+    const version =
+      resolveSeasonsStarsVersion(exposure) || (game.modules?.get('seasons-and-stars') as any)?.version || '1.x.x';
+
+    const hasFeature = (feature: string): boolean => {
+      switch (feature) {
+        case 'basic-api':
+          return true;
+        case 'widget-buttons':
+          return this.hasWidgetButtonSupport(exposure);
+        case 'time-advancement':
+          return typeof api.advanceDays === 'function';
+        default:
+          return false;
+      }
+    };
 
     return {
       isAvailable: true,
-      version: (game.modules?.get('seasons-and-stars') as any)?.version || '1.x.x',
-      api: api,
-      widgets: this.createLegacyWidgetWrapper(),
+      version,
+      api,
+      widgets: this.createLegacyWidgetWrapper(exposure),
       hooks: this.createLegacyHookWrapper(),
 
-      hasFeature: (feature: string) => {
-        // Basic feature detection for legacy versions
-        switch (feature) {
-          case 'basic-api':
-            return true;
-          case 'widget-buttons':
-            return this.hasWidgetButtonSupport();
-          case 'time-advancement':
-            return typeof api.advanceDays === 'function';
-          default:
-            return false;
-        }
-      },
+      hasFeature,
 
       getFeatureVersion: (feature: string) => {
-        return this.hasFeature(feature) ? this.version : null;
+        return hasFeature(feature) ? this.version : null;
       },
     } as SeasonsStarsIntegration;
   }
 
-  private createLegacyWidgetWrapper(): SeasonsStarsWidgets {
+  private createLegacyWidgetWrapper(exposure: SeasonsStarsExposure): SeasonsStarsWidgets {
+    const wrapWidget = (widgetClassName: string): BridgeCalendarWidget | null => {
+      const widgetClass = resolveSeasonsStarsWidgetClass(widgetClassName, exposure);
+      const instance = widgetClass?.getInstance?.() ?? widgetClass?.instance ?? widgetClass?.singleton ?? null;
+
+      if (!instance) return null;
+
+      return {
+        id: widgetClassName.toLowerCase(),
+        isVisible: instance.rendered || false,
+
+        addSidebarButton: (
+          name: string,
+          icon: string,
+          tooltip: string,
+          callback: (...args: unknown[]) => unknown
+        ) => {
+          if (typeof instance.addSidebarButton === 'function') {
+            instance.addSidebarButton(name, icon, tooltip, callback);
+          } else {
+            throw new Error(`Widget ${widgetClassName} does not support sidebar buttons`);
+          }
+        },
+
+        removeSidebarButton: (name: string) => {
+          if (typeof instance.removeSidebarButton === 'function') {
+            instance.removeSidebarButton(name);
+          }
+        },
+
+        hasSidebarButton: (name: string) => {
+          return typeof instance.hasSidebarButton === 'function'
+            ? instance.hasSidebarButton(name)
+            : false;
+        },
+
+        getInstance: () => instance,
+      };
+    };
+
     return {
       get main() {
-        return this.wrapWidget('CalendarWidget');
+        return wrapWidget('CalendarWidget');
       },
       get mini() {
-        return this.wrapWidget('CalendarMiniWidget');
+        return wrapWidget('CalendarMiniWidget');
       },
       get grid() {
-        return this.wrapWidget('CalendarGridWidget');
+        return wrapWidget('CalendarGridWidget');
       },
 
       getPreferredWidget: (preference = WidgetPreference.ANY) => {
-        const mini = this.wrapWidget('CalendarMiniWidget');
-        const main = this.wrapWidget('CalendarWidget');
-        const grid = this.wrapWidget('CalendarGridWidget');
+        const mini = wrapWidget('CalendarMiniWidget');
+        const main = wrapWidget('CalendarWidget');
+        const grid = wrapWidget('CalendarGridWidget');
 
         switch (preference) {
           case WidgetPreference.MINI:
@@ -209,69 +260,35 @@ export class SeasonsStarsIntegrationProvider implements CalendarProvider {
 
       onWidgetChange: () => {},
       offWidgetChange: () => {},
-
-      wrapWidget(widgetClassName: string): BridgeCalendarWidget | null {
-        const widgetClass = (window as any).SeasonsStars?.[widgetClassName];
-        const instance = widgetClass?.getInstance?.();
-
-        if (!instance) return null;
-
-        return {
-          id: widgetClassName.toLowerCase(),
-          isVisible: instance.rendered || false,
-
-          addSidebarButton: (name: string, icon: string, tooltip: string, callback: Function) => {
-            if (typeof instance.addSidebarButton === 'function') {
-              instance.addSidebarButton(name, icon, tooltip, callback);
-            } else {
-              throw new Error(`Widget ${widgetClassName} does not support sidebar buttons`);
-            }
-          },
-
-          removeSidebarButton: (name: string) => {
-            if (typeof instance.removeSidebarButton === 'function') {
-              instance.removeSidebarButton(name);
-            }
-          },
-
-          hasSidebarButton: (name: string) => {
-            return typeof instance.hasSidebarButton === 'function'
-              ? instance.hasSidebarButton(name)
-              : false;
-          },
-
-          getInstance: () => instance,
-        };
-      },
-    };
+    } as SeasonsStarsWidgets;
   }
 
   private createLegacyHookWrapper(): SeasonsStarsHooks {
     return {
-      onDateChanged: (callback: Function) => {
+      onDateChanged: (callback: (event: DateChangeEvent) => void) => {
         Hooks.on('seasons-stars:dateChanged', callback);
       },
 
-      onCalendarChanged: (callback: Function) => {
+      onCalendarChanged: (callback: (event: CalendarChangeEvent) => void) => {
         Hooks.on('seasons-stars:calendarChanged', callback);
       },
 
-      onReady: (callback: Function) => {
+      onReady: (callback: (event: ReadyEvent) => void) => {
         Hooks.on('seasons-stars:ready', callback);
       },
 
-      off: (hookName: string, callback: Function) => {
+      off: (hookName: string, callback: (...args: unknown[]) => void) => {
         Hooks.off(hookName, callback as any);
       },
     };
   }
 
-  private hasWidgetButtonSupport(): boolean {
+  private hasWidgetButtonSupport(exposure: SeasonsStarsExposure): boolean {
     const widgets = ['CalendarWidget', 'CalendarMiniWidget', 'CalendarGridWidget'];
 
     for (const widgetName of widgets) {
-      const widgetClass = (window as any).SeasonsStars?.[widgetName];
-      const instance = widgetClass?.getInstance?.();
+      const widgetClass = resolveSeasonsStarsWidgetClass(widgetName, exposure);
+      const instance = widgetClass?.getInstance?.() ?? widgetClass?.instance ?? widgetClass?.singleton ?? null;
 
       if (instance && typeof instance.addSidebarButton === 'function') {
         return true;
@@ -322,17 +339,18 @@ export class SeasonsStarsIntegrationProvider implements CalendarProvider {
    * Check if S&S is available with integration interface
    */
   static isAvailable(): boolean {
-    // Check for module
-    const module = game.modules?.get('seasons-and-stars');
-    if (!module?.active) {
-      return false;
+    const exposure = collectSeasonsStarsExposure();
+    const module = exposure.module;
+    const integration = resolveSeasonsStarsIntegration(exposure);
+    const api = resolveSeasonsStarsAPI(exposure, integration);
+
+    const available = !!(integration || api);
+
+    if (module) {
+      return !!module.active && available;
     }
 
-    // Check for either new integration or legacy API
-    const hasIntegration = !!(game as any).seasonsStars?.integration?.isAvailable;
-    const hasLegacyAPI = !!(game as any).seasonsStars?.api;
-
-    return hasIntegration || hasLegacyAPI;
+    return available;
   }
 
   /**
@@ -469,7 +487,12 @@ export class SeasonsStarsIntegrationProvider implements CalendarProvider {
   /**
    * Add sidebar button to preferred widget
    */
-  addSidebarButton(name: string, icon: string, tooltip: string, callback: Function): void {
+  addSidebarButton(
+    name: string,
+    icon: string,
+    tooltip: string,
+    callback: (...args: unknown[]) => unknown
+  ): void {
     if (!this.integration?.widgets) {
       throw new Error('Widget integration not available');
     }
