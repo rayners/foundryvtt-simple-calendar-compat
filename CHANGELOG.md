@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Your support helps fund bridge improvements and additional calendar module support!
 
+## [Unreleased]
+
+### Added
+- Automatically convert stored Simple Calendar world settings to Seasons & Stars format and register them when `seasons-stars:registerExternalCalendars` fires.
+- Notify users when calendars are imported and log malformed data so registration can continue even if some entries fail.
+- Provide resilient defaults for missing month and weekday data when migrating Simple Calendar configurations.
+
 ## [0.1.2] - 2025-06-06
 
 ### Fixed
