@@ -98,10 +98,265 @@ console.log(
   '🌉 Simple Calendar Compatibility Bridge | Minimal CSS classes added for attached mode'
 );
 
+const SIMPLE_CALENDAR_CALENDARS_KEY = 'foundryvtt-simple-calendar.calendars';
+const SIMPLE_CALENDAR_CURRENT_CALENDAR_KEY = 'foundryvtt-simple-calendar.current-calendar';
+
+type RegisterExternalCalendarsContext = {
+  registerCalendar?: (calendar: Record<string, unknown>, source: Record<string, unknown>) => void;
+};
+
+type SimpleCalendarCalendarConfig = Record<string, any>;
+
+function getSimpleCalendarWorldSettings(): Record<string, unknown> | null {
+  try {
+    const storage = game.settings?.storage;
+    if (storage && typeof storage.get === 'function') {
+      const worldSettings = storage.get('world');
+      if (worldSettings && typeof worldSettings === 'object') {
+        return worldSettings as Record<string, unknown>;
+      }
+    }
+  } catch (error) {
+    console.warn('Simple Calendar Bridge: Failed to read world settings for registration', error);
+  }
+
+  return null;
+}
+
+function getSimpleCalendarSettings() {
+  const worldSettings = getSimpleCalendarWorldSettings() ?? {};
+  const calendarsRaw =
+    worldSettings[SIMPLE_CALENDAR_CALENDARS_KEY] ??
+    (typeof game.settings?.get === 'function'
+      ? game.settings.get('foundryvtt-simple-calendar', 'calendars')
+      : undefined);
+  const currentCalendarRaw =
+    worldSettings[SIMPLE_CALENDAR_CURRENT_CALENDAR_KEY] ??
+    (typeof game.settings?.get === 'function'
+      ? game.settings.get('foundryvtt-simple-calendar', 'current-calendar')
+      : undefined);
+
+  let calendars: Record<string, SimpleCalendarCalendarConfig> | null = null;
+  let parseError = false;
+
+  if (calendarsRaw) {
+    try {
+      if (typeof calendarsRaw === 'string') {
+        calendars = JSON.parse(calendarsRaw) as Record<string, SimpleCalendarCalendarConfig>;
+      } else if (typeof calendarsRaw === 'object') {
+        calendars = calendarsRaw as Record<string, SimpleCalendarCalendarConfig>;
+      }
+    } catch (error) {
+      console.error('Error parsing calendars data', error);
+      parseError = true;
+    }
+  }
+
+  const currentCalendarId = typeof currentCalendarRaw === 'string' ? currentCalendarRaw : null;
+
+  return { calendars, currentCalendarId, parseError };
+}
+
+function ensureMonths(months: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(months)) {
+    return [];
+  }
+
+  return months.map((month, index) => {
+    const name =
+      typeof (month as any)?.name === 'string' ? (month as any).name : `Month ${index + 1}`;
+    const abbreviation = (month as any)?.abbreviation;
+    const days = typeof (month as any)?.days === 'number' ? (month as any).days : 30;
+
+    const result: Record<string, unknown> = {
+      name,
+      days,
+    };
+
+    if (typeof abbreviation === 'string' && abbreviation.length > 0) {
+      result.abbreviation = abbreviation;
+    }
+
+    return result;
+  });
+}
+
+function ensureWeekdays(weekdays: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(weekdays)) {
+    return [];
+  }
+
+  return weekdays.map((weekday, index) => {
+    const name =
+      typeof (weekday as any)?.name === 'string' ? (weekday as any).name : `Day ${index + 1}`;
+    const abbreviation = (weekday as any)?.abbreviation;
+
+    const result: Record<string, unknown> = {
+      name,
+    };
+
+    if (typeof abbreviation === 'string' && abbreviation.length > 0) {
+      result.abbreviation = abbreviation;
+    }
+
+    return result;
+  });
+}
+
+function convertSimpleCalendarCalendar(
+  calendarId: string,
+  calendarConfig: SimpleCalendarCalendarConfig
+): Record<string, unknown> | null {
+  if (!calendarConfig || typeof calendarConfig !== 'object') {
+    return null;
+  }
+
+  const translations: Record<string, Record<string, string>> = {
+    en: {
+      label:
+        typeof calendarConfig.name === 'string' && calendarConfig.name.length > 0
+          ? calendarConfig.name
+          : 'Simple Calendar Calendar',
+    },
+  };
+
+  if (typeof calendarConfig.description === 'string' && calendarConfig.description.length > 0) {
+    translations.en.description = calendarConfig.description;
+  }
+
+  const timeConfig = calendarConfig.time ?? {};
+
+  const result: Record<string, unknown> = {
+    id: `simple-calendar-${calendarId}`,
+    translations,
+    year: typeof calendarConfig.year === 'object' && calendarConfig.year ? calendarConfig.year : {},
+    months: ensureMonths(calendarConfig.months),
+    weekdays: ensureWeekdays(calendarConfig.weekdays),
+    intercalary: Array.isArray(calendarConfig.intercalary) ? calendarConfig.intercalary : [],
+    time: {
+      hoursInDay:
+        typeof (timeConfig as any)?.hoursInDay === 'number' ? (timeConfig as any).hoursInDay : 24,
+      minutesInHour:
+        typeof (timeConfig as any)?.minutesInHour === 'number'
+          ? (timeConfig as any).minutesInHour
+          : 60,
+      secondsInMinute:
+        typeof (timeConfig as any)?.secondsInMinute === 'number'
+          ? (timeConfig as any).secondsInMinute
+          : 60,
+    },
+  };
+
+  if (calendarConfig.leapYear) {
+    result.leapYear = calendarConfig.leapYear;
+  }
+
+  return result;
+}
+
+function registerSimpleCalendarCalendars(context: RegisterExternalCalendarsContext = {}): void {
+  const registerCalendar = context?.registerCalendar;
+
+  if (typeof registerCalendar !== 'function') {
+    console.warn(
+      'Simple Calendar Compatibility Bridge | registerExternalCalendars hook missing registerCalendar function'
+    );
+    return;
+  }
+
+  const { calendars, currentCalendarId, parseError } = getSimpleCalendarSettings();
+
+  if (parseError) {
+    return;
+  }
+
+  if (!calendars || Object.keys(calendars).length === 0) {
+    console.log('No Simple Calendar data found in world settings - skipping calendar registration');
+    return;
+  }
+
+  let registeredCount = 0;
+
+  for (const [calendarId, calendarConfig] of Object.entries(calendars)) {
+    const converted = convertSimpleCalendarCalendar(calendarId, calendarConfig);
+    if (!converted) {
+      continue;
+    }
+
+    registerCalendar(converted, {
+      type: 'module',
+      sourceName: 'Simple Calendar',
+      moduleId: 'simple-calendar',
+      isDefault: calendarId === currentCalendarId,
+    });
+
+    registeredCount += 1;
+  }
+
+  if (registeredCount > 0) {
+    ui.notifications?.info(`Registered ${registeredCount} calendars from Simple Calendar data`);
+  }
+}
+
+Hooks.on('seasons-stars:registerExternalCalendars', registerSimpleCalendarCalendars);
+
 class SimpleCalendarCompatibilityBridge {
   private provider: CalendarProvider | null = null;
   private api: SimpleCalendarAPIBridge | null = null;
   private hookBridge: HookBridge | null = null;
+
+  /**
+   * Initialize the compatibility bridge synchronously for immediate API availability
+   * Critical for ensuring API is ready when Item Piles ready hook fires
+   */
+  initializeSync(): void {
+    console.log('🌉 Simple Calendar Compatibility Bridge | Initializing synchronously...');
+
+    // Check if Simple Calendar is already active (but not our fake module)
+    const existingModule = game.modules.get('foundryvtt-simple-calendar');
+    if (
+      existingModule?.active &&
+      existingModule.title !== 'Simple Calendar (Compatibility Bridge)'
+    ) {
+      console.log(
+        '🌉 Simple Calendar Compatibility Bridge | Real Simple Calendar is active - bridge not needed'
+      );
+      return;
+    }
+
+    // Detect available calendar providers (for backward compatibility)
+    this.provider = this.detectCalendarProvider();
+
+    if (!this.provider) {
+      console.warn('🌉 Simple Calendar Compatibility Bridge | No supported calendar module found');
+      ui.notifications?.warn(game.i18n.localize('SIMPLE_CALENDAR_COMPAT.PROVIDER_NOT_FOUND'));
+      return;
+    }
+
+    console.log(
+      `🌉 Simple Calendar Compatibility Bridge | Using provider: ${this.provider.name} v${this.provider.version}`
+    );
+
+    // Create API bridge - detects integration interface internally
+    this.api = new SimpleCalendarAPIBridge();
+
+    // Create hook bridge using provider for compatibility
+    this.hookBridge = new HookBridge(this.provider);
+
+    // Expose Simple Calendar API synchronously
+    this.exposeSimpleCalendarAPI();
+
+    // Initialize hook bridging synchronously
+    this.hookBridge.initialize();
+
+    // Set up integration with Seasons & Stars widgets
+    this.setupWidgetIntegration();
+
+    console.log(
+      '🌉 Simple Calendar Compatibility Bridge | Ready synchronously - API immediately available'
+    );
+    ui.notifications?.info(game.i18n.localize('SIMPLE_CALENDAR_COMPAT.API_READY'));
+  }
 
   /**
    * Initialize the compatibility bridge
@@ -450,7 +705,7 @@ class SimpleCalendarCompatibilityBridge {
       });
 
       // Check if Simple Weather has registered listeners for this hook
-      const hookListeners = Hooks._hooks?.['renderMainApp'] || [];
+      const hookListeners = (Hooks as any)._hooks?.['renderMainApp'] || [];
       console.log(
         '🌉 Simple Calendar Compatibility Bridge | renderMainApp hook listeners:',
         hookListeners.length
@@ -467,7 +722,7 @@ class SimpleCalendarCompatibilityBridge {
   /**
    * Add Simple Calendar CSS classes and structure to a widget
    */
-  private addSimpleCalendarCompatibility($widget: JQuery): void {
+  private addSimpleCalendarCompatibility($widget: JQuery<any>): void {
     console.log(
       '🌉 Simple Calendar Compatibility Bridge | Adding compatibility to widget:',
       $widget.get(0)
@@ -527,7 +782,7 @@ class SimpleCalendarCompatibilityBridge {
   /**
    * Add any existing sidebar buttons to a specific widget
    */
-  private addExistingSidebarButtons($widget: JQuery): void {
+  private addExistingSidebarButtons($widget: JQuery<any>): void {
     if (this.api?.sidebarButtons && this.api.sidebarButtons.length > 0) {
       console.log(
         `🌉 Simple Calendar Compatibility Bridge | Adding ${this.api.sidebarButtons.length} sidebar buttons to widget`
@@ -557,7 +812,10 @@ class SimpleCalendarCompatibilityBridge {
     callback: Function
   ): void {
     // First try to use Seasons & Stars widget API directly
-    if ($widget.hasClass('calendar-widget') && game.seasonsStars?.manager?.widgets?.CalendarWidget) {
+    if (
+      $widget.hasClass('calendar-widget') &&
+      game.seasonsStars?.manager?.widgets?.CalendarWidget
+    ) {
       console.log(
         `🌉 Simple Calendar Compatibility Bridge | Using Seasons & Stars CalendarWidget API for button "${name}"`
       );
@@ -628,7 +886,7 @@ class SimpleCalendarCompatibilityBridge {
     );
 
     // Look for a good place to add the button
-    let $targetLocation: JQuery<HTMLElement>;
+    let $targetLocation: JQuery<HTMLElement> = $();
 
     if ($widget.hasClass('calendar-widget')) {
       // For full calendar widget, try window-header first
@@ -769,11 +1027,13 @@ Hooks.once('setup', () => {
 });
 
 /**
- * Widget integration after all modules are ready
+ * Initialize Simple Calendar API using seasons-stars:ready hook
+ * S&S fires this hook after exposing its API during setup hook
+ * CRITICAL: This must be synchronous and block until complete - no async!
  */
-Hooks.once('ready', async () => {
+Hooks.once('seasons-stars:ready', () => {
   console.log(
-    '🌉 Simple Calendar Compatibility Bridge | Ready hook firing - all modules should have completed setup'
+    '🌉 Simple Calendar Compatibility Bridge | S&S ready hook firing - API guaranteed available (BLOCKING)'
   );
 
   // Debug Simple Weather state
@@ -799,67 +1059,31 @@ Hooks.once('ready', async () => {
     }
   }
 
-  // Debug hook registration before our initialization
-  const preInitHooks = (Hooks as any)._hooks?.['renderMainApp']?.length || 0;
-  console.log('🌉 Simple Calendar Compatibility Bridge | Pre-init hook count:', preInitHooks);
-
-  // Debug global SimpleCalendar object
-  console.log('🌉 Simple Calendar Compatibility Bridge | SimpleCalendar global debug:', {
-    inWindow: !!(window as any).SimpleCalendar,
-    inGlobalThis: !!(globalThis as any).SimpleCalendar,
-    windowType: typeof (window as any).SimpleCalendar,
-    globalThisType: typeof (globalThis as any).SimpleCalendar,
-  });
-
-  // Function to initialize the bridge
-  const initializeBridge = async () => {
-    console.log(
-      '🌉 Simple Calendar Compatibility Bridge | Starting bridge initialization'
+  // Initialize bridge synchronously - S&S API should be immediately available
+  console.log(
+    '🌉 Simple Calendar Compatibility Bridge | Initializing bridge synchronously (BLOCKING)'
+  );
+  try {
+    // Use synchronous initialization since S&S API is now synchronously available
+    compatBridge.initializeSync();
+    console.log('🌉 Simple Calendar Compatibility Bridge | Bridge initialized synchronously');
+  } catch (error) {
+    console.error(
+      '🌉 Simple Calendar Compatibility Bridge | Failed to initialize synchronously:',
+      error
     );
-
-    // Check for Simple Weather hook listeners before and after our initialization
-    const preInitListeners = (Hooks as any)._hooks?.['renderMainApp']?.length || 0;
-    console.log(
-      '🌉 Simple Calendar Compatibility Bridge | renderMainApp hook listeners before init:',
-      preInitListeners
+    ui.notifications?.error(
+      'Simple Calendar Compatibility Bridge failed to initialize. Check console for details.'
     );
+  }
 
-    try {
-      await compatBridge.initialize();
-
-      // After initialization, wait for Simple Weather to register its hooks (triggered by SimpleCalendar.Hooks.Init)
-      setTimeout(() => {
-        const postInitListeners = (Hooks as any)._hooks?.['renderMainApp']?.length || 0;
-        console.log(
-          '🌉 Simple Calendar Compatibility Bridge | renderMainApp hook listeners after init:',
-          postInitListeners
-        );
-
-        if (postInitListeners > preInitListeners) {
-          console.log(
-            '🌉 Simple Calendar Compatibility Bridge | Simple Weather has registered its hooks, triggering widget integration'
-          );
-          // Simple Weather has registered, now trigger the widget integration
-          compatBridge.integrateWithSeasonsStarsWidgets();
-        } else {
-          console.warn(
-            '🌉 Simple Calendar Compatibility Bridge | Simple Weather has not registered renderMainApp hooks yet, trying anyway'
-          );
-          compatBridge.integrateWithSeasonsStarsWidgets();
-        }
-      }, 100); // Small delay for Simple Weather to register its hooks
-    } catch (error) {
-      console.error('🌉 Simple Calendar Compatibility Bridge | Failed to initialize:', error);
-      ui.notifications?.error(
-        'Simple Calendar Compatibility Bridge failed to initialize. Check console for details.'
-      );
-    }
-  };
-
-  // Check if Seasons & Stars API is already available
-  // All modules are loaded by the ready hook - initialize immediately
-  initializeBridge();
+  console.log(
+    '🌉 Simple Calendar Compatibility Bridge | Setup complete - API ready for Item Piles ready hook'
+  );
 });
+
+// No longer needed - bridge initializes immediately during ready hook
+// since S&S now exposes its API during setup hook
 
 /**
  * Module cleanup

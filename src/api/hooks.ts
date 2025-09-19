@@ -113,7 +113,7 @@ export class HookBridge {
   /**
    * Handle setting updates that might affect calendar display
    */
-  private onSettingUpdate(key: string, value: any, options: object): void {
+  private onSettingUpdate(key: string, _value: any, _options: object): void {
     // Check if it's a calendar-related setting
     if (key?.includes('calendar') || key?.includes('time')) {
       this.onDateChanged();
@@ -151,7 +151,9 @@ export class HookBridge {
         sunrise: 0,
         sunset: 0,
       };
-      const seasonInfo = this.provider.getSeasonInfo?.(currentDate) || {
+      // Get season info for compatibility (result not currently used)
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      this.provider.getSeasonInfo?.(currentDate) || {
         icon: 'none',
         name: 'Unknown',
       };

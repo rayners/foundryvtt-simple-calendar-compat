@@ -32,6 +32,9 @@ pids/
 coverage/
 .nyc_output/
 
+# Test artifacts
+test-results/
+
 # Environment variables
 .env
 .env.local
@@ -45,3 +48,6 @@ temp/
 
 # Development memory (should not be in repository)
 !CLAUDE.md
+
+# Local development context symlink
+dev-context
