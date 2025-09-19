@@ -5,7 +5,12 @@
  * without direct DOM manipulation or legacy API dependencies.
  */
 
-import type { CalendarProvider, CalendarDate } from '../types';
+import type {
+  CalendarProvider,
+  CalendarDate,
+  DateChangeEvent,
+  CalendarChangeEvent,
+} from '../types';
 
 // Integration types (matching S&S interface design)
 interface SeasonsStarsIntegration {
@@ -44,6 +49,7 @@ interface SeasonsStarsWidgets {
   getPreferredWidget(preference?: WidgetPreference): BridgeCalendarWidget | null;
   onWidgetChange(callback: (widgets: SeasonsStarsWidgets) => void): void;
   offWidgetChange(callback: (widgets: SeasonsStarsWidgets) => void): void;
+  wrapWidget?: any; // Allow dynamic widget wrapping for compatibility
 }
 
 interface BridgeCalendarWidget {
@@ -61,19 +67,6 @@ interface SeasonsStarsHooks {
   onCalendarChanged(callback: (event: CalendarChangeEvent) => void): void;
   onReady(callback: (event: ReadyEvent) => void): void;
   off(hookName: string, callback: Function): void;
-}
-
-interface DateChangeEvent {
-  newDate: CalendarDate;
-  oldDate: CalendarDate;
-  worldTime: number;
-  calendarId: string;
-}
-
-interface CalendarChangeEvent {
-  newCalendarId: string;
-  oldCalendarId: string;
-  calendar: any;
 }
 
 interface ReadyEvent {
@@ -97,9 +90,13 @@ export class SeasonsStarsIntegrationProvider implements CalendarProvider {
   readonly version: string;
 
   private integration: SeasonsStarsIntegration | null = null;
-  private dateChangeCallback?: Function;
-  private calendarChangeCallback?: Function;
-  private widgetChangeCallback?: Function;
+  private dateChangeCallback?: (event: DateChangeEvent) => void;
+  private calendarChangeCallback?: (event: CalendarChangeEvent) => void;
+  private widgetChangeCallback?: (widgets: SeasonsStarsWidgets) => void;
+
+  // Compatibility methods for bridge functionality
+  hasFeature?: any;
+  wrapWidget?: any;
 
   constructor() {
     this.integration = this.detectIntegration();

@@ -390,6 +390,20 @@ export interface SimpleCalendarHooks {
   ClockStartStop: string;
 }
 
+// Event interfaces
+export interface DateChangeEvent {
+  newDate: CalendarDate;
+  oldDate: CalendarDate;
+  worldTime: number;
+  calendarId: string;
+}
+
+export interface CalendarChangeEvent {
+  newCalendarId: string;
+  oldCalendarId: string;
+  calendar: any;
+}
+
 // Global extensions
 declare global {
   interface Window {
@@ -401,8 +415,10 @@ declare global {
 
   interface Game {
     seasonsStars?: {
-      api: any;
-      manager: any;
+      api?: any;
+      manager?: any;
+      integration?: any;
+      [key: string]: any; // Allow additional properties for compatibility
     };
   }
 }

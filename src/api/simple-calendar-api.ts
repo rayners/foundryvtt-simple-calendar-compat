@@ -12,6 +12,7 @@ import type {
   CalendarDate as BridgeCalendarDate,
   DateChangeEvent,
   CalendarChangeEvent,
+  SimpleCalendarAPI,
 } from '../types';
 
 // Simple Calendar Icon Constants - Required by Simple Weather and other modules
@@ -88,19 +89,6 @@ interface CalendarDate {
     minute: number;
     second: number;
   };
-}
-
-interface DateChangeEvent {
-  newDate: CalendarDate;
-  oldDate: CalendarDate;
-  worldTime: number;
-  calendarId: string;
-}
-
-interface CalendarChangeEvent {
-  newCalendarId: string;
-  oldCalendarId: string;
-  calendar: any;
 }
 
 interface ReadyEvent {
@@ -1461,7 +1449,7 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
    * Add Simple Calendar compatibility DOM structure via direct DOM manipulation
    * Used when S&S widget API is not available
    */
-  private addSimpleCalendarCompatibilityViaDOM($widget: JQuery): void {
+  private addSimpleCalendarCompatibilityViaDOM($widget: JQuery<any>): void {
     try {
       // Check if already processed to avoid duplicate work
       if ($widget.hasClass('simple-calendar-compat-processed')) {

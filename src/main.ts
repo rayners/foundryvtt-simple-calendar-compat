@@ -503,7 +503,7 @@ class SimpleCalendarCompatibilityBridge {
       });
 
       // Check if Simple Weather has registered listeners for this hook
-      const hookListeners = Hooks._hooks?.['renderMainApp'] || [];
+      const hookListeners = (Hooks as any)._hooks?.['renderMainApp'] || [];
       console.log(
         '🌉 Simple Calendar Compatibility Bridge | renderMainApp hook listeners:',
         hookListeners.length
@@ -520,7 +520,7 @@ class SimpleCalendarCompatibilityBridge {
   /**
    * Add Simple Calendar CSS classes and structure to a widget
    */
-  private addSimpleCalendarCompatibility($widget: JQuery): void {
+  private addSimpleCalendarCompatibility($widget: JQuery<any>): void {
     console.log(
       '🌉 Simple Calendar Compatibility Bridge | Adding compatibility to widget:',
       $widget.get(0)
@@ -580,7 +580,7 @@ class SimpleCalendarCompatibilityBridge {
   /**
    * Add any existing sidebar buttons to a specific widget
    */
-  private addExistingSidebarButtons($widget: JQuery): void {
+  private addExistingSidebarButtons($widget: JQuery<any>): void {
     if (this.api?.sidebarButtons && this.api.sidebarButtons.length > 0) {
       console.log(
         `🌉 Simple Calendar Compatibility Bridge | Adding ${this.api.sidebarButtons.length} sidebar buttons to widget`
@@ -684,7 +684,7 @@ class SimpleCalendarCompatibilityBridge {
     );
 
     // Look for a good place to add the button
-    let $targetLocation: JQuery<HTMLElement>;
+    let $targetLocation: JQuery<HTMLElement> = $();
 
     if ($widget.hasClass('calendar-widget')) {
       // For full calendar widget, try window-header first

@@ -51,8 +51,10 @@ interface Game {
 
   // Seasons & Stars integration point
   seasonsStars?: {
+    api?: any;
     manager?: any;
     integration?: any;
+    [key: string]: any; // Allow additional properties for compatibility
   };
 }
 

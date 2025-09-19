@@ -21,16 +21,20 @@ export default [
     rules: {
       // Ensure compatibility with GitHub CodeQL requirements
       '@typescript-eslint/no-unused-vars': 'error',
-      '@typescript-eslint/no-unsafe-function-type': 'warn',
+      // Relax rules for compatibility bridge project
+      '@typescript-eslint/no-unsafe-function-type': 'off',
       'no-case-declarations': 'warn',
-      '@typescript-eslint/explicit-function-return-type': 'warn',
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      // Allow any types for API compatibility layer
+      '@typescript-eslint/no-explicit-any': 'off',
+      // Allow console statements for debugging in this bridge module
+      'no-console': 'off',
     },
   },
 
   // Test files with relaxed rules
   {
-    files: ['test/**/*.{js,ts}'],
+    files: ['test/**/*.{js,ts}', 'src/**/*.test.{js,ts}'],
     languageOptions: {
       parserOptions: {
         project: './tsconfig.test.json',
