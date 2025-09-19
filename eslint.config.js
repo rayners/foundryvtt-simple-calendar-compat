@@ -9,6 +9,17 @@ export default [
   // Use the shared Foundry VTT configuration
   ...foundryConfig,
 
+  // Override TypeScript project configuration from foundry-dev-tools
+  {
+    files: ['**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        project: './tsconfig.json',
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+
   // Project-specific overrides for source files
   {
     files: ['src/**/*.{js,ts}'],
