@@ -109,7 +109,7 @@ type SimpleCalendarCalendarConfig = Record<string, any>;
 
 function getSimpleCalendarWorldSettings(): Record<string, unknown> | null {
   try {
-    const storage = game.settings?.storage as { get?: (scope: string) => unknown } | undefined;
+    const storage = game.settings?.storage;
     if (storage && typeof storage.get === 'function') {
       const worldSettings = storage.get('world');
       if (worldSettings && typeof worldSettings === 'object') {

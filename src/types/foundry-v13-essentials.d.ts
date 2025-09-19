@@ -69,10 +69,15 @@ interface Localization {
   format(key: string, data?: Record<string, unknown>): string;
 }
 
+interface ClientSettingsStorage {
+  get(scope: string): unknown;
+}
+
 interface ClientSettings {
   get(module: string, setting: string): any;
   set(module: string, setting: string, value: any): Promise<any>;
   register(module: string, setting: string, config: any): void;
+  storage?: ClientSettingsStorage;
 }
 
 interface User {
