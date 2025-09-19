@@ -18,11 +18,14 @@ Your support helps fund bridge improvements and additional calendar module suppo
 
 ### Added
 - Automatically convert stored Simple Calendar world settings to Seasons & Stars format and register them when `seasons-stars:registerExternalCalendars` fires, including resilient defaults for missing month and weekday data.
+- Expose a parse-time `SimpleCalendar` stub and register a compatibility module entry so dependent modules like Simple Weather or Item Piles can detect the API before their initialization hooks run.
+- Mirror Simple Calendar DOM structure, CSS classes, and hook emissions on Seasons & Stars widgets so Simple Weather's attached mode and sidebar buttons render without Simple Calendar being installed.
 - Notify users about calendar imports and continue registration even when malformed entries are skipped.
 - Introduced comprehensive repository management assets: CODEOWNERS, SECURITY policy, release template, and Codecov configuration.
 - Added GitHub workflows for CI, CodeQL scanning, release automation, semantic pull request validation, Discord release notifications, and stale issue management.
 
 ### Changed
+- Initialize the compatibility bridge synchronously during the `seasons-stars:ready` hook so the Simple Calendar API, hook bridge, and widget integration are ready before downstream modules continue their setup.
 - Upgraded the development toolchain to match Seasons & Stars: ESLint 9 flat config with `@rayners/foundry-dev-tools`, Prettier 3, Vitest 3, and refreshed TypeScript project configuration.
 - Enabled Husky and lint-staged git hooks with expanded npm scripts for formatting, linting, testing, and build validation.
 
