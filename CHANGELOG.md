@@ -17,9 +17,14 @@ Your support helps fund bridge improvements and additional calendar module suppo
 ## [Unreleased]
 
 ### Added
-- Automatically convert stored Simple Calendar world settings to Seasons & Stars format and register them when `seasons-stars:registerExternalCalendars` fires.
-- Notify users when calendars are imported and log malformed data so registration can continue even if some entries fail.
-- Provide resilient defaults for missing month and weekday data when migrating Simple Calendar configurations.
+- Automatically convert stored Simple Calendar world settings to Seasons & Stars format and register them when `seasons-stars:registerExternalCalendars` fires, including resilient defaults for missing month and weekday data.
+- Notify users about calendar imports and continue registration even when malformed entries are skipped.
+- Introduced comprehensive repository management assets: CODEOWNERS, SECURITY policy, release template, and Codecov configuration.
+- Added GitHub workflows for CI, CodeQL scanning, release automation, semantic pull request validation, Discord release notifications, and stale issue management.
+
+### Changed
+- Upgraded the development toolchain to match Seasons & Stars: ESLint 9 flat config with `@rayners/foundry-dev-tools`, Prettier 3, Vitest 3, and refreshed TypeScript project configuration.
+- Enabled Husky and lint-staged git hooks with expanded npm scripts for formatting, linting, testing, and build validation.
 
 ## [0.1.2] - 2025-06-06
 

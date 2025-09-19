@@ -32,6 +32,9 @@ pids/
 coverage/
 .nyc_output/
 
+# Test artifacts
+test-results/
+
 # Environment variables
 .env
 .env.local
