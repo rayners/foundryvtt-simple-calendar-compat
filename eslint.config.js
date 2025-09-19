@@ -14,7 +14,7 @@ export default [
     files: ['src/**/*.{js,ts}'],
     languageOptions: {
       parserOptions: {
-        project: true,
+        project: './tsconfig.json',
         tsconfigRootDir: import.meta.dirname,
       },
     },
