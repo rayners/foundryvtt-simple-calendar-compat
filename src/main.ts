@@ -104,6 +104,59 @@ class SimpleCalendarCompatibilityBridge {
   private hookBridge: HookBridge | null = null;
 
   /**
+   * Initialize the compatibility bridge synchronously for immediate API availability
+   * Critical for ensuring API is ready when Item Piles ready hook fires
+   */
+  initializeSync(): void {
+    console.log('🌉 Simple Calendar Compatibility Bridge | Initializing synchronously...');
+
+    // Check if Simple Calendar is already active (but not our fake module)
+    const existingModule = game.modules.get('foundryvtt-simple-calendar');
+    if (
+      existingModule?.active &&
+      existingModule.title !== 'Simple Calendar (Compatibility Bridge)'
+    ) {
+      console.log(
+        '🌉 Simple Calendar Compatibility Bridge | Real Simple Calendar is active - bridge not needed'
+      );
+      return;
+    }
+
+    // Detect available calendar providers (for backward compatibility)
+    this.provider = this.detectCalendarProvider();
+
+    if (!this.provider) {
+      console.warn('🌉 Simple Calendar Compatibility Bridge | No supported calendar module found');
+      ui.notifications?.warn(game.i18n.localize('SIMPLE_CALENDAR_COMPAT.PROVIDER_NOT_FOUND'));
+      return;
+    }
+
+    console.log(
+      `🌉 Simple Calendar Compatibility Bridge | Using provider: ${this.provider.name} v${this.provider.version}`
+    );
+
+    // Create API bridge - detects integration interface internally
+    this.api = new SimpleCalendarAPIBridge();
+
+    // Create hook bridge using provider for compatibility
+    this.hookBridge = new HookBridge(this.provider);
+
+    // Expose Simple Calendar API synchronously
+    this.exposeSimpleCalendarAPI();
+
+    // Initialize hook bridging synchronously
+    this.hookBridge.initialize();
+
+    // Set up integration with Seasons & Stars widgets
+    this.setupWidgetIntegration();
+
+    console.log(
+      '🌉 Simple Calendar Compatibility Bridge | Ready synchronously - API immediately available'
+    );
+    ui.notifications?.info(game.i18n.localize('SIMPLE_CALENDAR_COMPAT.API_READY'));
+  }
+
+  /**
    * Initialize the compatibility bridge
    */
   async initialize(): Promise<void> {
@@ -772,11 +825,13 @@ Hooks.once('setup', () => {
 });
 
 /**
- * Widget integration after all modules are ready
+ * Initialize Simple Calendar API using seasons-stars:ready hook
+ * S&S fires this hook after exposing its API during setup hook
+ * CRITICAL: This must be synchronous and block until complete - no async!
  */
-Hooks.once('ready', async () => {
+Hooks.once('seasons-stars:ready', () => {
   console.log(
-    '🌉 Simple Calendar Compatibility Bridge | Ready hook firing - all modules should have completed setup'
+    '🌉 Simple Calendar Compatibility Bridge | S&S ready hook firing - API guaranteed available (BLOCKING)'
   );
 
   // Debug Simple Weather state
@@ -802,65 +857,31 @@ Hooks.once('ready', async () => {
     }
   }
 
-  // Debug hook registration before our initialization
-  const preInitHooks = (Hooks as any)._hooks?.['renderMainApp']?.length || 0;
-  console.log('🌉 Simple Calendar Compatibility Bridge | Pre-init hook count:', preInitHooks);
-
-  // Debug global SimpleCalendar object
-  console.log('🌉 Simple Calendar Compatibility Bridge | SimpleCalendar global debug:', {
-    inWindow: !!(window as any).SimpleCalendar,
-    inGlobalThis: !!(globalThis as any).SimpleCalendar,
-    windowType: typeof (window as any).SimpleCalendar,
-    globalThisType: typeof (globalThis as any).SimpleCalendar,
-  });
-
-  // Function to initialize the bridge
-  const initializeBridge = async () => {
-    console.log('🌉 Simple Calendar Compatibility Bridge | Starting bridge initialization');
-
-    // Check for Simple Weather hook listeners before and after our initialization
-    const preInitListeners = (Hooks as any)._hooks?.['renderMainApp']?.length || 0;
-    console.log(
-      '🌉 Simple Calendar Compatibility Bridge | renderMainApp hook listeners before init:',
-      preInitListeners
+  // Initialize bridge synchronously - S&S API should be immediately available
+  console.log(
+    '🌉 Simple Calendar Compatibility Bridge | Initializing bridge synchronously (BLOCKING)'
+  );
+  try {
+    // Use synchronous initialization since S&S API is now synchronously available
+    compatBridge.initializeSync();
+    console.log('🌉 Simple Calendar Compatibility Bridge | Bridge initialized synchronously');
+  } catch (error) {
+    console.error(
+      '🌉 Simple Calendar Compatibility Bridge | Failed to initialize synchronously:',
+      error
     );
+    ui.notifications?.error(
+      'Simple Calendar Compatibility Bridge failed to initialize. Check console for details.'
+    );
+  }
 
-    try {
-      await compatBridge.initialize();
-
-      // After initialization, wait for Simple Weather to register its hooks (triggered by SimpleCalendar.Hooks.Init)
-      setTimeout(() => {
-        const postInitListeners = (Hooks as any)._hooks?.['renderMainApp']?.length || 0;
-        console.log(
-          '🌉 Simple Calendar Compatibility Bridge | renderMainApp hook listeners after init:',
-          postInitListeners
-        );
-
-        if (postInitListeners > preInitListeners) {
-          console.log(
-            '🌉 Simple Calendar Compatibility Bridge | Simple Weather has registered its hooks, triggering widget integration'
-          );
-          // Simple Weather has registered, now trigger the widget integration
-          compatBridge.integrateWithSeasonsStarsWidgets();
-        } else {
-          console.warn(
-            '🌉 Simple Calendar Compatibility Bridge | Simple Weather has not registered renderMainApp hooks yet, trying anyway'
-          );
-          compatBridge.integrateWithSeasonsStarsWidgets();
-        }
-      }, 100); // Small delay for Simple Weather to register its hooks
-    } catch (error) {
-      console.error('🌉 Simple Calendar Compatibility Bridge | Failed to initialize:', error);
-      ui.notifications?.error(
-        'Simple Calendar Compatibility Bridge failed to initialize. Check console for details.'
-      );
-    }
-  };
-
-  // Check if Seasons & Stars API is already available
-  // All modules are loaded by the ready hook - initialize immediately
-  initializeBridge();
+  console.log(
+    '🌉 Simple Calendar Compatibility Bridge | Setup complete - API ready for Item Piles ready hook'
+  );
 });
+
+// No longer needed - bridge initializes immediately during ready hook
+// since S&S now exposes its API during setup hook
 
 /**
  * Module cleanup

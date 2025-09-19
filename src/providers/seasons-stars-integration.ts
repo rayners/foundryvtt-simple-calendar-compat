@@ -149,7 +149,6 @@ export class SeasonsStarsIntegrationProvider implements CalendarProvider {
    */
   private createLegacyIntegrationWrapper(): SeasonsStarsIntegration {
     const api = (game as any).seasonsStars.api;
-    const manager = (game as any).seasonsStars.manager;
 
     return {
       isAvailable: true,

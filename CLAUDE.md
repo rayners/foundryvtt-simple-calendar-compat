@@ -31,6 +31,21 @@ The bridge integrates with [Seasons & Stars](https://github.com/rayners/fvtt-sea
 
 Key integration points include calendar date conversion, time advancement, widget button management, and note storage through S&S's public APIs.
 
+## Development Context Reference
+
+For comprehensive development standards, testing practices, and architecture patterns:
+
+- **[Development Context Overview](dev-context/README.md)** - Entry point and table of contents for all development reference materials
+
+Key reference areas for this project:
+
+- **Development Standards**: [dev-context/foundry-development-practices.md](dev-context/foundry-development-practices.md)
+- **Testing Practices**: [dev-context/testing-practices.md](dev-context/testing-practices.md)
+- **Architecture Patterns**: [dev-context/module-architecture-patterns.md](dev-context/module-architecture-patterns.md)
+- **Documentation Standards**: [dev-context/documentation-standards.md](dev-context/documentation-standards.md)
+
+**IMPORTANT**: Always review [dev-context/ai-code-access-restrictions.md](dev-context/ai-code-access-restrictions.md) - establishes critical restrictions on FoundryVTT proprietary code access while permitting licensed open-source module code.
+
 ## Recent Development Sessions
 
 ### Current Session: TypeScript v13 Infrastructure Addition ✅ COMPLETED
