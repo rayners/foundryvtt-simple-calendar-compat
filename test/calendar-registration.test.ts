@@ -45,8 +45,10 @@ describe('Simple Calendar Registration Flow', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
+    registrationCallback = undefined;
     registerCalendarMock = vi.fn().mockReturnValue(true);
-    
+
     // Capture the hook callback when it's registered
     (global.Hooks.on as any).mockImplementation((hookName: string, callback: any) => {
       if (hookName === 'seasons-stars:registerExternalCalendars') {
@@ -65,9 +67,9 @@ describe('Simple Calendar Registration Flow', () => {
     );
   });
 
-  it('should handle Simple Calendar data and register calendars', () => {
+  it('should handle Simple Calendar data and register calendars', async () => {
     // Import the module to register the hook
-    require('../src/main');
+    await import('../src/main');
 
     // Mock Simple Calendar world data
     const mockWorldSettings = {
@@ -142,9 +144,9 @@ describe('Simple Calendar Registration Flow', () => {
     );
   });
 
-  it('should handle missing Simple Calendar data gracefully', () => {
+  it('should handle missing Simple Calendar data gracefully', async () => {
     // Import the module to register the hook
-    require('../src/main');
+    await import('../src/main');
 
     // Mock empty world settings
     (global.game.settings.storage.get as any).mockReturnValue({});
@@ -161,9 +163,9 @@ describe('Simple Calendar Registration Flow', () => {
     );
   });
 
-  it('should handle malformed Simple Calendar data gracefully', () => {
+  it('should handle malformed Simple Calendar data gracefully', async () => {
     // Import the module to register the hook
-    require('../src/main');
+    await import('../src/main');
 
     // Mock malformed Simple Calendar data
     const mockWorldSettings = {
@@ -185,9 +187,9 @@ describe('Simple Calendar Registration Flow', () => {
     );
   });
 
-  it('should convert Simple Calendar format to S&S format correctly', () => {
+  it('should convert Simple Calendar format to S&S format correctly', async () => {
     // Import the module to register the hook
-    require('../src/main');
+    await import('../src/main');
 
     // Mock detailed Simple Calendar data
     const mockWorldSettings = {

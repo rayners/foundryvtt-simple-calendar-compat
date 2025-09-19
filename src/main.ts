@@ -98,6 +98,208 @@ console.log(
   '🌉 Simple Calendar Compatibility Bridge | Minimal CSS classes added for attached mode'
 );
 
+const SIMPLE_CALENDAR_CALENDARS_KEY = 'foundryvtt-simple-calendar.calendars';
+const SIMPLE_CALENDAR_CURRENT_CALENDAR_KEY = 'foundryvtt-simple-calendar.current-calendar';
+
+type RegisterExternalCalendarsContext = {
+  registerCalendar?: (calendar: Record<string, unknown>, source: Record<string, unknown>) => void;
+};
+
+type SimpleCalendarCalendarConfig = Record<string, any>;
+
+function getSimpleCalendarWorldSettings(): Record<string, unknown> | null {
+  try {
+    const storage = game.settings?.storage as { get?: (scope: string) => unknown } | undefined;
+    if (storage && typeof storage.get === 'function') {
+      const worldSettings = storage.get('world');
+      if (worldSettings && typeof worldSettings === 'object') {
+        return worldSettings as Record<string, unknown>;
+      }
+    }
+  } catch (error) {
+    console.warn('Simple Calendar Bridge: Failed to read world settings for registration', error);
+  }
+
+  return null;
+}
+
+function getSimpleCalendarSettings() {
+  const worldSettings = getSimpleCalendarWorldSettings() ?? {};
+  const calendarsRaw =
+    worldSettings[SIMPLE_CALENDAR_CALENDARS_KEY] ??
+    (typeof game.settings?.get === 'function'
+      ? game.settings.get('foundryvtt-simple-calendar', 'calendars')
+      : undefined);
+  const currentCalendarRaw =
+    worldSettings[SIMPLE_CALENDAR_CURRENT_CALENDAR_KEY] ??
+    (typeof game.settings?.get === 'function'
+      ? game.settings.get('foundryvtt-simple-calendar', 'current-calendar')
+      : undefined);
+
+  let calendars: Record<string, SimpleCalendarCalendarConfig> | null = null;
+  let parseError = false;
+
+  if (calendarsRaw) {
+    try {
+      if (typeof calendarsRaw === 'string') {
+        calendars = JSON.parse(calendarsRaw) as Record<string, SimpleCalendarCalendarConfig>;
+      } else if (typeof calendarsRaw === 'object') {
+        calendars = calendarsRaw as Record<string, SimpleCalendarCalendarConfig>;
+      }
+    } catch (error) {
+      console.error('Error parsing calendars data', error);
+      parseError = true;
+    }
+  }
+
+  const currentCalendarId = typeof currentCalendarRaw === 'string' ? currentCalendarRaw : null;
+
+  return { calendars, currentCalendarId, parseError };
+}
+
+function ensureMonths(months: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(months)) {
+    return [];
+  }
+
+  return months.map((month, index) => {
+    const name =
+      typeof (month as any)?.name === 'string' ? (month as any).name : `Month ${index + 1}`;
+    const abbreviation = (month as any)?.abbreviation;
+    const days = typeof (month as any)?.days === 'number' ? (month as any).days : 30;
+
+    const result: Record<string, unknown> = {
+      name,
+      days,
+    };
+
+    if (typeof abbreviation === 'string' && abbreviation.length > 0) {
+      result.abbreviation = abbreviation;
+    }
+
+    return result;
+  });
+}
+
+function ensureWeekdays(weekdays: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(weekdays)) {
+    return [];
+  }
+
+  return weekdays.map((weekday, index) => {
+    const name =
+      typeof (weekday as any)?.name === 'string' ? (weekday as any).name : `Day ${index + 1}`;
+    const abbreviation = (weekday as any)?.abbreviation;
+
+    const result: Record<string, unknown> = {
+      name,
+    };
+
+    if (typeof abbreviation === 'string' && abbreviation.length > 0) {
+      result.abbreviation = abbreviation;
+    }
+
+    return result;
+  });
+}
+
+function convertSimpleCalendarCalendar(
+  calendarId: string,
+  calendarConfig: SimpleCalendarCalendarConfig
+): Record<string, unknown> | null {
+  if (!calendarConfig || typeof calendarConfig !== 'object') {
+    return null;
+  }
+
+  const translations: Record<string, Record<string, string>> = {
+    en: {
+      label:
+        typeof calendarConfig.name === 'string' && calendarConfig.name.length > 0
+          ? calendarConfig.name
+          : 'Simple Calendar Calendar',
+    },
+  };
+
+  if (typeof calendarConfig.description === 'string' && calendarConfig.description.length > 0) {
+    translations.en.description = calendarConfig.description;
+  }
+
+  const timeConfig = calendarConfig.time ?? {};
+
+  const result: Record<string, unknown> = {
+    id: `simple-calendar-${calendarId}`,
+    translations,
+    year: typeof calendarConfig.year === 'object' && calendarConfig.year ? calendarConfig.year : {},
+    months: ensureMonths(calendarConfig.months),
+    weekdays: ensureWeekdays(calendarConfig.weekdays),
+    intercalary: Array.isArray(calendarConfig.intercalary) ? calendarConfig.intercalary : [],
+    time: {
+      hoursInDay:
+        typeof (timeConfig as any)?.hoursInDay === 'number' ? (timeConfig as any).hoursInDay : 24,
+      minutesInHour:
+        typeof (timeConfig as any)?.minutesInHour === 'number'
+          ? (timeConfig as any).minutesInHour
+          : 60,
+      secondsInMinute:
+        typeof (timeConfig as any)?.secondsInMinute === 'number'
+          ? (timeConfig as any).secondsInMinute
+          : 60,
+    },
+  };
+
+  if (calendarConfig.leapYear) {
+    result.leapYear = calendarConfig.leapYear;
+  }
+
+  return result;
+}
+
+function registerSimpleCalendarCalendars(context: RegisterExternalCalendarsContext = {}): void {
+  const registerCalendar = context?.registerCalendar;
+
+  if (typeof registerCalendar !== 'function') {
+    console.warn(
+      'Simple Calendar Compatibility Bridge | registerExternalCalendars hook missing registerCalendar function'
+    );
+    return;
+  }
+
+  const { calendars, currentCalendarId, parseError } = getSimpleCalendarSettings();
+
+  if (parseError) {
+    return;
+  }
+
+  if (!calendars || Object.keys(calendars).length === 0) {
+    console.log('No Simple Calendar data found in world settings - skipping calendar registration');
+    return;
+  }
+
+  let registeredCount = 0;
+
+  for (const [calendarId, calendarConfig] of Object.entries(calendars)) {
+    const converted = convertSimpleCalendarCalendar(calendarId, calendarConfig);
+    if (!converted) {
+      continue;
+    }
+
+    registerCalendar(converted, {
+      type: 'module',
+      sourceName: 'Simple Calendar',
+      moduleId: 'simple-calendar',
+      isDefault: calendarId === currentCalendarId,
+    });
+
+    registeredCount += 1;
+  }
+
+  if (registeredCount > 0) {
+    ui.notifications?.info(`Registered ${registeredCount} calendars from Simple Calendar data`);
+  }
+}
+
+Hooks.on('seasons-stars:registerExternalCalendars', registerSimpleCalendarCalendars);
+
 class SimpleCalendarCompatibilityBridge {
   private provider: CalendarProvider | null = null;
   private api: SimpleCalendarAPIBridge | null = null;
