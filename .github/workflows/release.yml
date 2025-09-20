@@ -7,6 +7,11 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build and release (e.g. v0.2.0)'
+        required: false
+        type: string
 
 jobs:
   build:
@@ -20,6 +25,7 @@ jobs:
       - name: Release Simple Calendar Compatibility Bridge
         uses: rayners/foundry-module-actions/release@v1
         with:
+          tag: ${{ inputs.tag }}
           node-version: '18'
           build-command: 'npm run build'
           working-directory: 'dist'
