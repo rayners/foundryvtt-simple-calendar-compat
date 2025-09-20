@@ -1,6 +1,6 @@
 {
   "name": "foundryvtt-simple-calendar-compat",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Simple Calendar API compatibility bridge for modern calendar modules",
   "type": "module",
   "main": "dist/main.js",

@@ -14,6 +14,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Your support helps fund bridge improvements and additional calendar module support!
 
+## [0.2.0](https://github.com/rayners/foundryvtt-simple-calendar-compat/compare/v0.1.1...v0.2.0) (2025-09-19)
+
+
+### Features
+
+* add comprehensive Patreon and GitHub Sponsors support ([bef3bcb](https://github.com/rayners/foundryvtt-simple-calendar-compat/commit/bef3bcb7ee900deeae0cb4376a349ee492617c33))
+* coordinate with S&S init changes ([90b8b0d](https://github.com/rayners/foundryvtt-simple-calendar-compat/commit/90b8b0d5af670d86069e55d38bc8748dca857fb1))
+* cover more Simple calendar API ([90b8b0d](https://github.com/rayners/foundryvtt-simple-calendar-compat/commit/90b8b0d5af670d86069e55d38bc8748dca857fb1))
+
+
+### Bug Fixes
+
+* complete weekday conversion fix for WFRP4e issue [#15](https://github.com/rayners/foundryvtt-simple-calendar-compat/issues/15) ([50eb18c](https://github.com/rayners/foundryvtt-simple-calendar-compat/commit/50eb18c2b1eddbb6b011a24c1e48a109ce65b2a6))
+* format code with prettier ([5ed1cce](https://github.com/rayners/foundryvtt-simple-calendar-compat/commit/5ed1cce2b672b669aa3bfae0a0eb5106a1fdebdf))
+* increase API detection timeout for environments with many modules ([#31](https://github.com/rayners/foundryvtt-simple-calendar-compat/issues/31)) ([8e298fd](https://github.com/rayners/foundryvtt-simple-calendar-compat/commit/8e298fdef03cb890bfc90d4bfbf6474c10faa023))
+* remove manual build from release-please workflow to prevent conflicts ([4454057](https://github.com/rayners/foundryvtt-simple-calendar-compat/commit/44540577fc37f700f9354d3cd56fedeca148bfa6))
+
+
+### Documentation
+
+* add CLAUDE.md development memory file ([#29](https://github.com/rayners/foundryvtt-simple-calendar-compat/issues/29)) ([cc850ae](https://github.com/rayners/foundryvtt-simple-calendar-compat/commit/cc850ae5e633a022e286ea730378f4dff86c5a5e))
+* clean up repository documentation per standards ([ab7c43d](https://github.com/rayners/foundryvtt-simple-calendar-compat/commit/ab7c43dc243fa8b7785f120a465a8101d7c1faa8))
+
 ## [Unreleased]
 
 ### Added
