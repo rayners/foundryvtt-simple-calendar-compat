@@ -7,12 +7,15 @@ import type { CalendarProvider } from '../types';
 export class HookBridge {
   private provider: CalendarProvider;
   private clockRunning = false;
+  private readyEmitted = false;
 
   // Simple Calendar hook names
   private readonly SIMPLE_CALENDAR_HOOKS = {
     Init: 'simple-calendar-init',
     DateTimeChange: 'simple-calendar-date-time-change',
     ClockStartStop: 'simple-calendar-clock-start-stop',
+    PrimaryGM: 'simple-calendar-primary-gm',
+    Ready: 'simple-calendar-ready',
   };
 
   constructor(provider: CalendarProvider) {
@@ -46,6 +49,14 @@ export class HookBridge {
       '🌉 Simple Calendar Bridge: renderMainApp listeners after Init:',
       (Hooks as any)._hooks?.['renderMainApp']?.length || 0
     );
+
+    // Check and emit primary GM hook
+    this.triggerPrimaryGMCheck();
+
+    // Emit ready hook after initialization completes
+    setTimeout(() => {
+      this.emitReadyHook();
+    }, 5000); // Match Simple Calendar's 5-second delay for GMs
   }
 
   /**
@@ -209,5 +220,56 @@ export class HookBridge {
    */
   getHookNames(): typeof this.SIMPLE_CALENDAR_HOOKS {
     return this.SIMPLE_CALENDAR_HOOKS;
+  }
+
+  /**
+   * Check if current user is primary GM and emit hook if true
+   */
+  triggerPrimaryGMCheck(): void {
+    if (!this.isPrimaryGM()) {
+      return;
+    }
+
+    console.log('🌉 Simple Calendar Bridge: Emitting PrimaryGM hook');
+    Hooks.callAll(this.SIMPLE_CALENDAR_HOOKS.PrimaryGM, {
+      isPrimaryGM: true,
+    });
+  }
+
+  /**
+   * Determine if the current user is the primary GM
+   * Based on Simple Calendar's logic: first active GM user
+   */
+  isPrimaryGM(): boolean {
+    // Must be a GM to be primary GM
+    if (!game.user?.isGM) {
+      return false;
+    }
+
+    // Get all active GM users, sorted by ID for consistency
+    const activeGMs = game.users?.filter((user: any) => user.isGM && user.active) || [];
+
+    if (activeGMs.length === 0) {
+      return false;
+    }
+
+    // Sort by ID to ensure consistent primary GM selection
+    activeGMs.sort((a: any, b: any) => a.id.localeCompare(b.id));
+
+    // First active GM is the primary GM
+    return activeGMs[0]?.id === game.user?.id;
+  }
+
+  /**
+   * Emit the Ready hook - signals Simple Calendar is fully initialized
+   */
+  emitReadyHook(): void {
+    if (this.readyEmitted) {
+      return; // Only emit once
+    }
+
+    this.readyEmitted = true;
+    console.log('🌉 Simple Calendar Bridge: Emitting Ready hook');
+    Hooks.callAll(this.SIMPLE_CALENDAR_HOOKS.Ready);
   }
 }
