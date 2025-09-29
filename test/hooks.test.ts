@@ -7,19 +7,57 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { HookBridge } from '../src/api/hooks';
 import type { CalendarProvider } from '../src/types';
 
+/**
+ * Mock Foundry User interface
+ */
+interface MockFoundryUser {
+  id: string;
+  isGM: boolean;
+  active: boolean;
+}
+
+/**
+ * Mock Foundry Hooks interface
+ */
+interface MockHooksSystem {
+  callAll: ReturnType<typeof vi.fn>;
+  on: ReturnType<typeof vi.fn>;
+}
+
+/**
+ * Mock Foundry Game interface
+ */
+interface MockGame {
+  user: MockFoundryUser;
+  users: {
+    filter: ReturnType<typeof vi.fn>;
+  };
+}
+
 // Mock Foundry globals
-const mockHooks = {
+const mockHooks: MockHooksSystem = {
   callAll: vi.fn(),
   on: vi.fn(),
 };
 
-global.Hooks = mockHooks as any;
-global.game = {
+// Mock user data for testing
+const mockUsers: MockFoundryUser[] = [
+  { id: 'user1', isGM: true, active: true },
+  { id: 'user2', isGM: true, active: false }, // inactive GM
+  { id: 'user3', isGM: false, active: true }, // active player
+];
+
+const mockGame: MockGame = {
   user: { isGM: true, id: 'user1', active: true },
   users: {
-    filter: vi.fn(() => [{ id: 'user1', isGM: true, active: true }]),
+    filter: vi.fn((predicate: (user: MockFoundryUser) => boolean) =>
+      mockUsers.filter(predicate)
+    ),
   },
-} as any;
+};
+
+global.Hooks = mockHooks;
+global.game = mockGame;
 
 // Mock provider
 const mockProvider: CalendarProvider = {
@@ -43,9 +81,9 @@ describe('HookBridge', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset the user to be a GM for each test
-    global.game.user.isGM = true;
-    global.game.user.id = 'user1';
-    global.game.user.active = true;
+    mockGame.user.isGM = true;
+    mockGame.user.id = 'user1';
+    mockGame.user.active = true;
     hookBridge = new HookBridge(mockProvider);
   });
 
@@ -58,11 +96,21 @@ describe('HookBridge', () => {
 
     it('should emit DateTimeChange hook with correct data', () => {
       hookBridge.initialize();
+
+      // Find the date change handler that was registered (before clearing mocks)
+      const dateChangeHook = mockHooks.on.mock.calls.find(
+        (call: any[]) => call[0] === 'seasons-stars:dateChanged'
+      );
+
+      // Clear mocks to isolate the date change test
       vi.clearAllMocks();
 
-      // Trigger a date change
-      const onDateChanged = (hookBridge as any).onDateChanged.bind(hookBridge);
-      onDateChanged();
+      // Verify the hook was registered and call the handler
+      expect(dateChangeHook).toBeDefined();
+      if (dateChangeHook) {
+        const dateChangeHandler = dateChangeHook[1];
+        dateChangeHandler();
+      }
 
       expect(mockHooks.callAll).toHaveBeenCalledWith(
         'simple-calendar-date-time-change',
@@ -107,7 +155,7 @@ describe('HookBridge', () => {
     });
 
     it('should not emit PrimaryGM hook when user is not a GM', () => {
-      global.game.user.isGM = false;
+      mockGame.user.isGM = false;
 
       hookBridge.triggerPrimaryGMCheck();
 
@@ -115,6 +163,9 @@ describe('HookBridge', () => {
         'simple-calendar-primary-gm',
         expect.any(Object)
       );
+
+      // Reset for other tests
+      mockGame.user.isGM = true;
     });
 
     it('should determine primary GM status correctly', () => {

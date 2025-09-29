@@ -4,6 +4,61 @@
 
 import type { CalendarProvider } from '../types';
 
+/**
+ * Foundry User interface for type safety
+ */
+interface FoundryUser {
+  id: string;
+  isGM: boolean;
+  active: boolean;
+}
+
+/**
+ * Simple Calendar date object interface
+ */
+interface SimpleCalendarDate {
+  year: number;
+  month: number;
+  day: number;
+  dayOfTheWeek: number;
+  hour: number;
+  minute: number;
+  second: number;
+  sunrise: number;
+  sunset: number;
+  display: {
+    monthName: string;
+    weekday: string;
+  };
+}
+
+/**
+ * Simple Calendar moon data interface
+ */
+interface SimpleCalendarMoon {
+  color: string;
+  currentPhase: {
+    icon: string;
+  };
+}
+
+/**
+ * Simple Calendar season data interface
+ */
+interface SimpleCalendarSeason {
+  name: string;
+  icon: string;
+}
+
+/**
+ * Hooks system with internal structure access for debugging
+ */
+interface HooksSystemWithInternal {
+  callAll: (hook: string, ...args: any[]) => void;
+  on: (hook: string, callback: Function) => number;
+  _hooks?: Record<string, Function[]>;
+}
+
 export class HookBridge {
   private provider: CalendarProvider;
   private clockRunning = false;
@@ -39,7 +94,7 @@ export class HookBridge {
     console.log('🌉 Simple Calendar Bridge: Hook name:', this.SIMPLE_CALENDAR_HOOKS.Init);
     console.log(
       '🌉 Simple Calendar Bridge: Registered listeners before Init:',
-      (Hooks as any)._hooks?.[this.SIMPLE_CALENDAR_HOOKS.Init]?.length || 0
+      (Hooks as HooksSystemWithInternal)._hooks?.[this.SIMPLE_CALENDAR_HOOKS.Init]?.length || 0
     );
 
     Hooks.callAll(this.SIMPLE_CALENDAR_HOOKS.Init);
@@ -47,7 +102,7 @@ export class HookBridge {
     console.log('🌉 Simple Calendar Bridge: Init hook emitted');
     console.log(
       '🌉 Simple Calendar Bridge: renderMainApp listeners after Init:',
-      (Hooks as any)._hooks?.['renderMainApp']?.length || 0
+      (Hooks as HooksSystemWithInternal)._hooks?.['renderMainApp']?.length || 0
     );
 
     // Check and emit primary GM hook
@@ -124,7 +179,7 @@ export class HookBridge {
   /**
    * Handle setting updates that might affect calendar display
    */
-  private onSettingUpdate(key: string, _value: any, _options: object): void {
+  private onSettingUpdate(key: string, _value: unknown, _options: object): void {
     // Check if it's a calendar-related setting
     if (key?.includes('calendar') || key?.includes('time')) {
       this.onDateChanged();
@@ -151,7 +206,7 @@ export class HookBridge {
   /**
    * Get current date in Simple Calendar format
    */
-  private getCurrentSimpleCalendarDate(): any {
+  private getCurrentSimpleCalendarDate(): SimpleCalendarDate | null {
     try {
       const currentDate = this.provider.getCurrentDate();
       if (!currentDate) return null;
@@ -194,7 +249,7 @@ export class HookBridge {
   /**
    * Get moon data for compatibility
    */
-  private getAllMoons(): any[] {
+  private getAllMoons(): SimpleCalendarMoon[] {
     return [
       {
         color: '#ffffff',
@@ -206,7 +261,7 @@ export class HookBridge {
   /**
    * Get season data for compatibility
    */
-  private getAllSeasons(): any[] {
+  private getAllSeasons(): SimpleCalendarSeason[] {
     return [
       { name: 'Spring', icon: 'spring' },
       { name: 'Summer', icon: 'summer' },
@@ -247,14 +302,14 @@ export class HookBridge {
     }
 
     // Get all active GM users, sorted by ID for consistency
-    const activeGMs = game.users?.filter((user: any) => user.isGM && user.active) || [];
+    const activeGMs = game.users?.filter((user: FoundryUser) => user.isGM && user.active) || [];
 
     if (activeGMs.length === 0) {
       return false;
     }
 
     // Sort by ID to ensure consistent primary GM selection
-    activeGMs.sort((a: any, b: any) => a.id.localeCompare(b.id));
+    activeGMs.sort((a: FoundryUser, b: FoundryUser) => a.id.localeCompare(b.id));
 
     // First active GM is the primary GM
     return activeGMs[0]?.id === game.user?.id;
