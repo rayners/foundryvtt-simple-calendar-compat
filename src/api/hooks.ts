@@ -307,9 +307,7 @@ export class HookBridge {
 
     try {
       // Get all active GM users using Foundry Collection API
-      const activeGMs = Array.from(game.users?.values() || []).filter(
-        (user: FoundryUser) => user.isGM && user.active
-      );
+      const activeGMs = game.users?.filter((user: FoundryUser) => user.isGM && user.active) ?? [];
 
       if (activeGMs.length === 0) {
         return false;
