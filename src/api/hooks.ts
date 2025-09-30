@@ -4,15 +4,75 @@
 
 import type { CalendarProvider } from '../types';
 
+/**
+ * Foundry User interface for type safety
+ */
+interface FoundryUser {
+  id: string;
+  isGM: boolean;
+  active: boolean;
+}
+
+/**
+ * Simple Calendar date object interface
+ */
+interface SimpleCalendarDate {
+  year: number;
+  month: number;
+  day: number;
+  dayOfTheWeek: number;
+  hour: number;
+  minute: number;
+  second: number;
+  sunrise: number;
+  sunset: number;
+  display: {
+    monthName: string;
+    weekday: string;
+  };
+}
+
+/**
+ * Simple Calendar moon data interface
+ */
+interface SimpleCalendarMoon {
+  color: string;
+  currentPhase: {
+    icon: string;
+  };
+}
+
+/**
+ * Simple Calendar season data interface
+ */
+interface SimpleCalendarSeason {
+  name: string;
+  icon: string;
+}
+
+/**
+ * Hooks system with internal structure access for debugging
+ */
+interface HooksSystemWithInternal {
+  callAll: (hook: string, ...args: any[]) => void;
+  on: (hook: string, callback: Function) => number;
+  _hooks?: Record<string, Function[]>;
+}
+
 export class HookBridge {
   private provider: CalendarProvider;
   private clockRunning = false;
+  private readyEmitted = false;
+  private readyTimeoutId?: ReturnType<typeof setTimeout>;
+  private isActive = true;
 
   // Simple Calendar hook names
   private readonly SIMPLE_CALENDAR_HOOKS = {
     Init: 'simple-calendar-init',
     DateTimeChange: 'simple-calendar-date-time-change',
     ClockStartStop: 'simple-calendar-clock-start-stop',
+    PrimaryGM: 'simple-calendar-primary-gm',
+    Ready: 'simple-calendar-ready',
   };
 
   constructor(provider: CalendarProvider) {
@@ -36,7 +96,7 @@ export class HookBridge {
     console.log('🌉 Simple Calendar Bridge: Hook name:', this.SIMPLE_CALENDAR_HOOKS.Init);
     console.log(
       '🌉 Simple Calendar Bridge: Registered listeners before Init:',
-      (Hooks as any)._hooks?.[this.SIMPLE_CALENDAR_HOOKS.Init]?.length || 0
+      (Hooks as HooksSystemWithInternal)._hooks?.[this.SIMPLE_CALENDAR_HOOKS.Init]?.length || 0
     );
 
     Hooks.callAll(this.SIMPLE_CALENDAR_HOOKS.Init);
@@ -44,8 +104,18 @@ export class HookBridge {
     console.log('🌉 Simple Calendar Bridge: Init hook emitted');
     console.log(
       '🌉 Simple Calendar Bridge: renderMainApp listeners after Init:',
-      (Hooks as any)._hooks?.['renderMainApp']?.length || 0
+      (Hooks as HooksSystemWithInternal)._hooks?.['renderMainApp']?.length || 0
     );
+
+    // Check and emit primary GM hook
+    this.triggerPrimaryGMCheck();
+
+    // Emit ready hook after initialization completes
+    this.readyTimeoutId = setTimeout(() => {
+      if (this.isActive) {
+        this.emitReadyHook();
+      }
+    }, 5000); // Match Simple Calendar's 5-second delay for GMs
   }
 
   /**
@@ -113,7 +183,7 @@ export class HookBridge {
   /**
    * Handle setting updates that might affect calendar display
    */
-  private onSettingUpdate(key: string, _value: any, _options: object): void {
+  private onSettingUpdate(key: string, _value: unknown, _options: object): void {
     // Check if it's a calendar-related setting
     if (key?.includes('calendar') || key?.includes('time')) {
       this.onDateChanged();
@@ -140,7 +210,7 @@ export class HookBridge {
   /**
    * Get current date in Simple Calendar format
    */
-  private getCurrentSimpleCalendarDate(): any {
+  private getCurrentSimpleCalendarDate(): SimpleCalendarDate | null {
     try {
       const currentDate = this.provider.getCurrentDate();
       if (!currentDate) return null;
@@ -183,7 +253,7 @@ export class HookBridge {
   /**
    * Get moon data for compatibility
    */
-  private getAllMoons(): any[] {
+  private getAllMoons(): SimpleCalendarMoon[] {
     return [
       {
         color: '#ffffff',
@@ -195,7 +265,7 @@ export class HookBridge {
   /**
    * Get season data for compatibility
    */
-  private getAllSeasons(): any[] {
+  private getAllSeasons(): SimpleCalendarSeason[] {
     return [
       { name: 'Spring', icon: 'spring' },
       { name: 'Summer', icon: 'summer' },
@@ -209,5 +279,75 @@ export class HookBridge {
    */
   getHookNames(): typeof this.SIMPLE_CALENDAR_HOOKS {
     return this.SIMPLE_CALENDAR_HOOKS;
+  }
+
+  /**
+   * Check if current user is primary GM and emit hook if true
+   */
+  triggerPrimaryGMCheck(): void {
+    if (!this.isPrimaryGM()) {
+      return;
+    }
+
+    console.log('🌉 Simple Calendar Bridge: Emitting PrimaryGM hook');
+    Hooks.callAll(this.SIMPLE_CALENDAR_HOOKS.PrimaryGM, {
+      isPrimaryGM: true,
+    });
+  }
+
+  /**
+   * Determine if the current user is the primary GM
+   * Based on Simple Calendar's logic: first active GM user
+   */
+  isPrimaryGM(): boolean {
+    // Must be a GM to be primary GM
+    if (!game?.user?.isGM) {
+      return false;
+    }
+
+    try {
+      // Get all active GM users using Foundry Collection API
+      const activeGMs = game.users?.filter((user: FoundryUser) => user.isGM && user.active) ?? [];
+
+      if (activeGMs.length === 0) {
+        return false;
+      }
+
+      // Sort by ID to ensure consistent primary GM selection
+      // Create copy to avoid mutating Collection result
+      const sortedGMs = [...activeGMs].sort((a: FoundryUser, b: FoundryUser) =>
+        a.id.localeCompare(b.id)
+      );
+
+      // First active GM is the primary GM
+      return sortedGMs[0]?.id === game.user?.id;
+    } catch (error) {
+      console.warn('Simple Calendar Bridge: Error determining primary GM:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Emit the Ready hook - signals Simple Calendar is fully initialized
+   */
+  emitReadyHook(): void {
+    if (this.readyEmitted) {
+      return; // Only emit once
+    }
+
+    this.readyEmitted = true;
+    console.log('🌉 Simple Calendar Bridge: Emitting Ready hook');
+    Hooks.callAll(this.SIMPLE_CALENDAR_HOOKS.Ready);
+  }
+
+  /**
+   * Clean up resources when bridge is destroyed
+   */
+  destroy(): void {
+    this.isActive = false;
+    if (this.readyTimeoutId !== undefined) {
+      clearTimeout(this.readyTimeoutId);
+      this.readyTimeoutId = undefined;
+    }
   }
 }
