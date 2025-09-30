@@ -23,10 +23,10 @@ console.log(
 const moduleParseTimeSimpleCalendar = {
   api: {
     // Core date/time methods
-    timestampToDate: (timestamp?: number) => ({
+    timestampToDate: (_timestamp?: number) => ({
       year: 2024,
       month: 0, // 0-based for Simple Calendar compatibility
-      day: 0,  // 0-based for Simple Calendar compatibility
+      day: 0, // 0-based for Simple Calendar compatibility
       hour: 0,
       minute: 0,
       second: 0,
@@ -40,7 +40,7 @@ const moduleParseTimeSimpleCalendar = {
     getCurrentDate: () => ({
       year: 2024,
       month: 0, // 0-based
-      day: 0,  // 0-based
+      day: 0, // 0-based
       hour: 0,
       minute: 0,
       second: 0,
@@ -58,7 +58,7 @@ const moduleParseTimeSimpleCalendar = {
       color: '#87b03e',
     }),
     // Note methods for weather storage
-    getNotesForDay: (year?: number, month?: number, day?: number) => [],
+    getNotesForDay: (_year?: number, _month?: number, _day?: number) => [],
     addNote: () => Promise.resolve({ id: 'temp-note' }),
     removeNote: () => true,
     // Time advancement
@@ -107,7 +107,9 @@ console.log(
     seasonsStarsDetected: !!game.modules?.get('seasons-and-stars'),
     seasonsStarsActive: game.modules?.get('seasons-and-stars')?.active,
     seasonsStarsAPI: !!(game as any).seasonsStars,
-    apiMethods: (globalThis as any).SimpleCalendar?.api ? Object.keys((globalThis as any).SimpleCalendar.api) : [],
+    apiMethods: (globalThis as any).SimpleCalendar?.api
+      ? Object.keys((globalThis as any).SimpleCalendar.api)
+      : [],
   };
 
   console.log('🌉 Simple Calendar Compatibility Bridge Diagnostics:', diagnostics);
@@ -1092,8 +1094,10 @@ Hooks.once('init', () => {
   const seasonsStarsModule = game.modules.get('seasons-and-stars');
   const simpleWeatherModule = game.modules.get('foundryvtt-simple-weather');
 
-  if ((seasonsStarsModule?.active || simpleWeatherModule?.active) &&
-      !game.modules.get('foundryvtt-simple-calendar')) {
+  if (
+    (seasonsStarsModule?.active || simpleWeatherModule?.active) &&
+    !game.modules.get('foundryvtt-simple-calendar')
+  ) {
     console.log(
       '🌉 Simple Calendar Compatibility Bridge | Registering fake SC module during init for early detection'
     );
@@ -1128,7 +1132,7 @@ Hooks.once('init', () => {
       flags: {},
       socket: false,
       // Add toObject method in case Simple Weather checks it
-      toObject: function() {
+      toObject: function () {
         return {
           id: this.id,
           title: this.title,
@@ -1145,9 +1149,8 @@ Hooks.once('init', () => {
     );
   }
 
-  // Fire Simple Calendar init hook that Simple Weather might be listening for
-  console.log('🌉 Simple Calendar Compatibility Bridge | Firing simple-calendar-init hook');
-  Hooks.callAll('simple-calendar-init');
+  // Note: simple-calendar-init hook will be fired by HookBridge.initialize()
+  // when the bridge is fully initialized during seasons-stars:ready
 });
 
 /**
@@ -1158,9 +1161,7 @@ Hooks.once('setup', () => {
 
   // Module should already be registered, but verify
   if (game.modules.get('foundryvtt-simple-calendar')) {
-    console.log(
-      '🌉 Simple Calendar Compatibility Bridge | Fake SC module already registered'
-    );
+    console.log('🌉 Simple Calendar Compatibility Bridge | Fake SC module already registered');
   }
 });
 
@@ -1219,9 +1220,8 @@ Hooks.once('seasons-stars:ready', () => {
     '🌉 Simple Calendar Compatibility Bridge | Setup complete - API ready for Item Piles ready hook'
   );
 
-  // Fire Simple Calendar ready hook for modules waiting for it
-  console.log('🌉 Simple Calendar Compatibility Bridge | Firing simple-calendar-ready hook');
-  Hooks.callAll('simple-calendar-ready');
+  // Note: simple-calendar-ready hook will be fired by HookBridge.emitReadyHook()
+  // 5 seconds after HookBridge.initialize() completes (matches Simple Calendar behavior)
 });
 
 // No longer needed - bridge initializes immediately during ready hook
