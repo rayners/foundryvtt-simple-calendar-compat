@@ -109,6 +109,30 @@ Comprehensive test suite covers:
 - Error handling and edge cases
 - TDD approach with failing tests first
 
+## Troubleshooting
+
+### Hook Not Firing
+
+- Verify the bridge initialized successfully (`simple-calendar-init` fired)
+- Check that S&S is loaded before the bridge module
+- Ensure GM status for PrimaryGM hook
+
+### Multiple Ready Hooks
+
+- Bridge prevents duplicate Ready emissions
+- Check for multiple bridge instances if seeing unexpected behavior
+
+### Clock State Issues
+
+- Bridge maintains independent clock state from S&S
+- Use bridge's `startClock()/stopClock()` methods for proper event emission
+
+### Primary GM Detection Issues
+
+- Primary GM is determined by first active GM sorted by user ID
+- Check `game.user.isGM` and `game.user.active` status
+- Only the primary GM receives the PrimaryGM hook
+
 ## Future Enhancements
 
 Potential improvements:

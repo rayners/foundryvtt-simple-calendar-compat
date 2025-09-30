@@ -53,7 +53,8 @@ const mockGame: MockGame = {
     filter: vi.fn((predicate: (user: MockFoundryUser) => boolean) =>
       mockUsers.filter(predicate)
     ),
-  },
+    values: vi.fn(() => mockUsers),
+  } as any,
 };
 
 global.Hooks = mockHooks;
@@ -198,6 +199,22 @@ describe('HookBridge', () => {
       // (Ready is emitted after 5 second timeout in real implementation)
       expect(mockHooks.callAll).toHaveBeenCalledWith('simple-calendar-init');
       expect(mockHooks.callAll).toHaveBeenCalledWith('simple-calendar-primary-gm', expect.any(Object));
+    });
+
+    it('should emit Ready hook after 5-second delay during initialization', () => {
+      vi.useFakeTimers();
+
+      hookBridge.initialize();
+
+      // Should not be called immediately
+      expect(mockHooks.callAll).not.toHaveBeenCalledWith('simple-calendar-ready');
+
+      // Fast-forward 5 seconds
+      vi.advanceTimersByTime(5000);
+
+      expect(mockHooks.callAll).toHaveBeenCalledWith('simple-calendar-ready');
+
+      vi.useRealTimers();
     });
   });
 

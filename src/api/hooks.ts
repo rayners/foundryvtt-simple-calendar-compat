@@ -63,6 +63,8 @@ export class HookBridge {
   private provider: CalendarProvider;
   private clockRunning = false;
   private readyEmitted = false;
+  private readyTimeoutId?: number;
+  private isActive = true;
 
   // Simple Calendar hook names
   private readonly SIMPLE_CALENDAR_HOOKS = {
@@ -109,9 +111,11 @@ export class HookBridge {
     this.triggerPrimaryGMCheck();
 
     // Emit ready hook after initialization completes
-    setTimeout(() => {
-      this.emitReadyHook();
-    }, 5000); // Match Simple Calendar's 5-second delay for GMs
+    this.readyTimeoutId = setTimeout(() => {
+      if (this.isActive) {
+        this.emitReadyHook();
+      }
+    }, 5000) as unknown as number; // Match Simple Calendar's 5-second delay for GMs
   }
 
   /**
@@ -297,22 +301,29 @@ export class HookBridge {
    */
   isPrimaryGM(): boolean {
     // Must be a GM to be primary GM
-    if (!game.user?.isGM) {
+    if (!game?.user?.isGM) {
       return false;
     }
 
-    // Get all active GM users, sorted by ID for consistency
-    const activeGMs = game.users?.filter((user: FoundryUser) => user.isGM && user.active) || [];
+    try {
+      // Get all active GM users using Foundry Collection API
+      const activeGMs = Array.from(game.users?.values() || []).filter(
+        (user: FoundryUser) => user.isGM && user.active
+      );
 
-    if (activeGMs.length === 0) {
+      if (activeGMs.length === 0) {
+        return false;
+      }
+
+      // Sort by ID to ensure consistent primary GM selection
+      activeGMs.sort((a: FoundryUser, b: FoundryUser) => a.id.localeCompare(b.id));
+
+      // First active GM is the primary GM
+      return activeGMs[0]?.id === game.user?.id;
+    } catch (error) {
+      console.warn('Simple Calendar Bridge: Error determining primary GM:', error);
       return false;
     }
-
-    // Sort by ID to ensure consistent primary GM selection
-    activeGMs.sort((a: FoundryUser, b: FoundryUser) => a.id.localeCompare(b.id));
-
-    // First active GM is the primary GM
-    return activeGMs[0]?.id === game.user?.id;
   }
 
   /**
@@ -326,5 +337,16 @@ export class HookBridge {
     this.readyEmitted = true;
     console.log('🌉 Simple Calendar Bridge: Emitting Ready hook');
     Hooks.callAll(this.SIMPLE_CALENDAR_HOOKS.Ready);
+  }
+
+  /**
+   * Clean up resources when bridge is destroyed
+   */
+  destroy(): void {
+    this.isActive = false;
+    if (this.readyTimeoutId !== undefined) {
+      clearTimeout(this.readyTimeoutId);
+      this.readyTimeoutId = undefined;
+    }
   }
 }
