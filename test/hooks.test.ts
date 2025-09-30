@@ -88,6 +88,13 @@ describe('HookBridge', () => {
     hookBridge = new HookBridge(mockProvider);
   });
 
+  afterEach(() => {
+    // Clean up any timeouts to prevent memory leaks
+    if (hookBridge) {
+      hookBridge.destroy();
+    }
+  });
+
   describe('Existing Hook Implementation', () => {
     it('should emit Init hook during initialization', () => {
       hookBridge.initialize();
@@ -156,17 +163,19 @@ describe('HookBridge', () => {
     });
 
     it('should not emit PrimaryGM hook when user is not a GM', () => {
-      mockGame.user.isGM = false;
+      const originalIsGM = mockGame.user.isGM;
+      try {
+        mockGame.user.isGM = false;
 
-      hookBridge.triggerPrimaryGMCheck();
+        hookBridge.triggerPrimaryGMCheck();
 
-      expect(mockHooks.callAll).not.toHaveBeenCalledWith(
-        'simple-calendar-primary-gm',
-        expect.any(Object)
-      );
-
-      // Reset for other tests
-      mockGame.user.isGM = true;
+        expect(mockHooks.callAll).not.toHaveBeenCalledWith(
+          'simple-calendar-primary-gm',
+          expect.any(Object)
+        );
+      } finally {
+        mockGame.user.isGM = originalIsGM;
+      }
     });
 
     it('should determine primary GM status correctly', () => {
@@ -203,18 +212,35 @@ describe('HookBridge', () => {
 
     it('should emit Ready hook after 5-second delay during initialization', () => {
       vi.useFakeTimers();
+      try {
+        hookBridge.initialize();
 
-      hookBridge.initialize();
+        // Should not be called immediately
+        expect(mockHooks.callAll).not.toHaveBeenCalledWith('simple-calendar-ready');
 
-      // Should not be called immediately
-      expect(mockHooks.callAll).not.toHaveBeenCalledWith('simple-calendar-ready');
+        // Fast-forward 5 seconds
+        vi.advanceTimersByTime(5000);
 
-      // Fast-forward 5 seconds
-      vi.advanceTimersByTime(5000);
+        expect(mockHooks.callAll).toHaveBeenCalledWith('simple-calendar-ready');
+      } finally {
+        vi.useRealTimers();
+      }
+    });
 
-      expect(mockHooks.callAll).toHaveBeenCalledWith('simple-calendar-ready');
+    it('should not emit Ready hook if destroyed before timeout', () => {
+      vi.useFakeTimers();
+      try {
+        hookBridge.initialize();
+        hookBridge.destroy();
 
-      vi.useRealTimers();
+        // Fast-forward past the timeout
+        vi.advanceTimersByTime(5000);
+
+        // Ready hook should NOT be emitted
+        expect(mockHooks.callAll).not.toHaveBeenCalledWith('simple-calendar-ready');
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 

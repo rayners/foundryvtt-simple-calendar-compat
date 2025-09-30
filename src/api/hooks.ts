@@ -63,7 +63,7 @@ export class HookBridge {
   private provider: CalendarProvider;
   private clockRunning = false;
   private readyEmitted = false;
-  private readyTimeoutId?: number;
+  private readyTimeoutId?: ReturnType<typeof setTimeout>;
   private isActive = true;
 
   // Simple Calendar hook names
@@ -115,7 +115,7 @@ export class HookBridge {
       if (this.isActive) {
         this.emitReadyHook();
       }
-    }, 5000) as unknown as number; // Match Simple Calendar's 5-second delay for GMs
+    }, 5000); // Match Simple Calendar's 5-second delay for GMs
   }
 
   /**
@@ -314,10 +314,13 @@ export class HookBridge {
       }
 
       // Sort by ID to ensure consistent primary GM selection
-      activeGMs.sort((a: FoundryUser, b: FoundryUser) => a.id.localeCompare(b.id));
+      // Create copy to avoid mutating Collection result
+      const sortedGMs = [...activeGMs].sort((a: FoundryUser, b: FoundryUser) =>
+        a.id.localeCompare(b.id)
+      );
 
       // First active GM is the primary GM
-      return activeGMs[0]?.id === game.user?.id;
+      return sortedGMs[0]?.id === game.user?.id;
     } catch (error) {
       console.warn('Simple Calendar Bridge: Error determining primary GM:', error);
       return false;
