@@ -14,6 +14,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Your support helps fund bridge improvements and additional calendar module support!
 
+## [0.3.0](https://github.com/rayners/foundryvtt-simple-calendar-compat/compare/v0.2.0...v0.3.0) (2025-09-30)
+
+
+### Features
+
+* implement remaining Simple Calendar hooks with TDD approach ([#42](https://github.com/rayners/foundryvtt-simple-calendar-compat/issues/42)) ([eba8ac4](https://github.com/rayners/foundryvtt-simple-calendar-compat/commit/eba8ac4d7acb3b16b57e1730dcf9d35ca5df27bc))
+
+
+### Bug Fixes
+
+* ensure Simple Calendar API is available before Simple Weather initialization ([#40](https://github.com/rayners/foundryvtt-simple-calendar-compat/issues/40)) ([c2f3ac2](https://github.com/rayners/foundryvtt-simple-calendar-compat/commit/c2f3ac287fefb47e41f5334ad4cd0b5129193cb6))
+* fetch all tags in release workflow for tag detection ([02e21fb](https://github.com/rayners/foundryvtt-simple-calendar-compat/commit/02e21fbb70f4a7ed0920a88389c2a2e71eed355c))
+* use correct foundry-module-actions tag v6.0.0 ([8cb4a01](https://github.com/rayners/foundryvtt-simple-calendar-compat/commit/8cb4a0109ac3e70167780733678aca8ce3da816e))
+* use working foundry-module-actions v4 like other modules ([4ff121e](https://github.com/rayners/foundryvtt-simple-calendar-compat/commit/4ff121e30dc469da46b5c473f824140dd54c86da))
+
 ## [0.2.0](https://github.com/rayners/foundryvtt-simple-calendar-compat/compare/v0.1.1...v0.2.0) (2025-09-19)
 
 
