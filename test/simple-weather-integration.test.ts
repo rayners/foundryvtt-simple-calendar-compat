@@ -144,7 +144,7 @@ describe('Simple Weather Integration', () => {
       expect(mockApi.getNotesForDay).toHaveBeenCalled();
     });
 
-    it('should provide addNote method for weather persistence', () => {
+    it('should provide addNote method for weather persistence', async () => {
       const mockApi = {
         addNote: vi.fn(() => Promise.resolve({ id: 'note123' })),
       };
@@ -152,13 +152,14 @@ describe('Simple Weather Integration', () => {
       (globalThis as any).SimpleCalendar = { api: mockApi };
 
       // Simple Weather uses this to store weather data
-      const promise = (globalThis as any).SimpleCalendar.api.addNote(
+      const result = await (globalThis as any).SimpleCalendar.api.addNote(
         'Weather',
         'Sunny',
         { year: 2024, month: 1, day: 15 }
       );
 
-      expect(promise).toBeDefined();
+      expect(result).toBeDefined();
+      expect(result.id).toBe('note123');
       expect(mockApi.addNote).toHaveBeenCalled();
     });
 
@@ -180,15 +181,33 @@ describe('Simple Weather Integration', () => {
 
   describe('Hook Timing Issues', () => {
     it('should have SimpleCalendar available before init hook', () => {
-      // Simulate module load order
-      let simpleCalendarAvailable = false;
+      // Simulate module load order - this tests the actual timing issue from #39
+      const hookCallbacks: Function[] = [];
+      let apiAvailableDuringInit = false;
 
-      // Step 1: Module scripts are parsed (our module loads)
-      (globalThis as any).SimpleCalendar = { api: {}, Hooks: {} };
-      simpleCalendarAvailable = !!(globalThis as any).SimpleCalendar;
+      // Mock Hooks.once to capture when init hook fires
+      const mockHooks = {
+        once: (event: string, callback: Function) => {
+          if (event === 'init') {
+            hookCallbacks.push(callback);
+          }
+        }
+      };
 
-      // Step 2: Init hook fires (Simple Weather might check here)
-      expect(simpleCalendarAvailable).toBe(true);
+      // Step 1: Module scripts are parsed (our module loads first)
+      (globalThis as any).SimpleCalendar = { api: { getCurrentDate: () => ({}) }, Hooks: {} };
+
+      // Step 2: Simple Weather module loads and registers its init hook
+      mockHooks.once('init', () => {
+        // This is what Simple Weather does - check if SimpleCalendar exists
+        apiAvailableDuringInit = !!(globalThis as any).SimpleCalendar;
+      });
+
+      // Step 3: Foundry fires init hook
+      hookCallbacks.forEach(cb => cb());
+
+      // Simple Weather should have found SimpleCalendar during its init hook
+      expect(apiAvailableDuringInit).toBe(true);
     });
 
     it('should have fake module registered before ready hook', () => {

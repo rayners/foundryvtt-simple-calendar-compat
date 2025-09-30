@@ -10,6 +10,12 @@ import { HookBridge } from './api/hooks';
 import type { CalendarProvider } from './types';
 
 /**
+ * Version number that Simple Weather expects to see
+ * This matches Simple Calendar v2.4.18 for compatibility
+ */
+const FAKE_SIMPLE_CALENDAR_VERSION = '2.4.18';
+
+/**
  * CRITICAL: Expose SimpleCalendar immediately at module parse time
  * Simple Weather checks for 'SimpleCalendar' in globalThis when its module script loads
  * This must happen before any hooks, at the top level of our module
@@ -20,53 +26,152 @@ console.log(
 
 // Create a minimal SimpleCalendar object that Simple Weather can detect
 // CRITICAL: Include all methods Simple Weather checks during initialization
+// NOTE: These stub methods return minimal data until the real API is initialized
+// They will be replaced by the full bridge API during seasons-stars:ready hook
 const moduleParseTimeSimpleCalendar = {
   api: {
     // Core date/time methods
-    timestampToDate: (_timestamp?: number) => ({
-      year: 2024,
-      month: 0, // 0-based for Simple Calendar compatibility
-      day: 0, // 0-based for Simple Calendar compatibility
-      hour: 0,
-      minute: 0,
-      second: 0,
-      display: {
-        monthName: 'January',
-        day: '1',
-        year: '2024',
-        time: '00:00',
-      },
-    }),
-    getCurrentDate: () => ({
-      year: 2024,
-      month: 0, // 0-based
-      day: 0, // 0-based
-      hour: 0,
-      minute: 0,
-      second: 0,
-      display: {
-        monthName: 'January',
-        day: '1',
-        year: '2024',
-        time: '00:00',
-      },
-    }),
+    // These return stub data until real API is ready - Simple Weather should not cache these values
+    timestampToDate: (_timestamp?: number) => {
+      // Delegate to real API if available, otherwise return stub
+      if (
+        (window as any).SimpleCalendar?.api?.timestampToDate &&
+        (window as any).SimpleCalendar.api.timestampToDate !==
+          moduleParseTimeSimpleCalendar.api.timestampToDate
+      ) {
+        return (window as any).SimpleCalendar.api.timestampToDate(_timestamp);
+      }
+      return {
+        year: 2024,
+        month: 0, // 0-based for Simple Calendar compatibility
+        day: 0, // 0-based for Simple Calendar compatibility
+        hour: 0,
+        minute: 0,
+        second: 0,
+        display: {
+          monthName: 'January',
+          day: '1',
+          year: '2024',
+          time: '00:00',
+        },
+      };
+    },
+    getCurrentDate: () => {
+      // Delegate to real API if available
+      if (
+        (window as any).SimpleCalendar?.api?.getCurrentDate &&
+        (window as any).SimpleCalendar.api.getCurrentDate !==
+          moduleParseTimeSimpleCalendar.api.getCurrentDate
+      ) {
+        return (window as any).SimpleCalendar.api.getCurrentDate();
+      }
+      return {
+        year: 2024,
+        month: 0, // 0-based
+        day: 0, // 0-based
+        hour: 0,
+        minute: 0,
+        second: 0,
+        display: {
+          monthName: 'January',
+          day: '1',
+          year: '2024',
+          time: '00:00',
+        },
+      };
+    },
     // Season/climate methods Simple Weather uses for generation
-    getCurrentSeason: () => ({
-      name: 'Spring',
-      icon: 'spring',
-      color: '#87b03e',
-    }),
+    getCurrentSeason: () => {
+      // Delegate to real API if available
+      if (
+        (window as any).SimpleCalendar?.api?.getCurrentSeason &&
+        (window as any).SimpleCalendar.api.getCurrentSeason !==
+          moduleParseTimeSimpleCalendar.api.getCurrentSeason
+      ) {
+        return (window as any).SimpleCalendar.api.getCurrentSeason();
+      }
+      // Return null until real API is ready to avoid misleading season data
+      return null;
+    },
     // Note methods for weather storage
-    getNotesForDay: (_year?: number, _month?: number, _day?: number) => [],
-    addNote: () => Promise.resolve({ id: 'temp-note' }),
-    removeNote: () => true,
+    getNotesForDay: (_year?: number, _month?: number, _day?: number) => {
+      // Delegate to real API if available
+      if (
+        (window as any).SimpleCalendar?.api?.getNotesForDay &&
+        (window as any).SimpleCalendar.api.getNotesForDay !==
+          moduleParseTimeSimpleCalendar.api.getNotesForDay
+      ) {
+        return (window as any).SimpleCalendar.api.getNotesForDay(_year, _month, _day);
+      }
+      return [];
+    },
+    addNote: (...args: any[]) => {
+      // Delegate to real API if available
+      if (
+        (window as any).SimpleCalendar?.api?.addNote &&
+        (window as any).SimpleCalendar.api.addNote !== moduleParseTimeSimpleCalendar.api.addNote
+      ) {
+        return (window as any).SimpleCalendar.api.addNote(...args);
+      }
+      // Reject until real API is ready to avoid fake note IDs
+      return Promise.reject(new Error('Simple Calendar API not yet initialized'));
+    },
+    removeNote: (...args: any[]) => {
+      // Delegate to real API if available
+      if (
+        (window as any).SimpleCalendar?.api?.removeNote &&
+        (window as any).SimpleCalendar.api.removeNote !==
+          moduleParseTimeSimpleCalendar.api.removeNote
+      ) {
+        return (window as any).SimpleCalendar.api.removeNote(...args);
+      }
+      return false;
+    },
     // Time advancement
-    setDate: () => false, // Returns false until fully initialized
-    changeDate: () => false,
+    setDate: (...args: any[]) => {
+      // Delegate to real API if available
+      if (
+        (window as any).SimpleCalendar?.api?.setDate &&
+        (window as any).SimpleCalendar.api.setDate !== moduleParseTimeSimpleCalendar.api.setDate
+      ) {
+        return (window as any).SimpleCalendar.api.setDate(...args);
+      }
+      return false;
+    },
+    changeDate: (...args: any[]) => {
+      // Delegate to real API if available
+      if (
+        (window as any).SimpleCalendar?.api?.changeDate &&
+        (window as any).SimpleCalendar.api.changeDate !==
+          moduleParseTimeSimpleCalendar.api.changeDate
+      ) {
+        return (window as any).SimpleCalendar.api.changeDate(...args);
+      }
+      return false;
+    },
     // Month/weekday info
-    getAllMonths: () => [],
-    getAllSeasons: () => [],
+    getAllMonths: () => {
+      // Delegate to real API if available
+      if (
+        (window as any).SimpleCalendar?.api?.getAllMonths &&
+        (window as any).SimpleCalendar.api.getAllMonths !==
+          moduleParseTimeSimpleCalendar.api.getAllMonths
+      ) {
+        return (window as any).SimpleCalendar.api.getAllMonths();
+      }
+      return [];
+    },
+    getAllSeasons: () => {
+      // Delegate to real API if available
+      if (
+        (window as any).SimpleCalendar?.api?.getAllSeasons &&
+        (window as any).SimpleCalendar.api.getAllSeasons !==
+          moduleParseTimeSimpleCalendar.api.getAllSeasons
+      ) {
+        return (window as any).SimpleCalendar.api.getAllSeasons();
+      }
+      return [];
+    },
     // Module status
     isSimpleCalendar: () => true, // Simple Weather may check this
   },
@@ -594,7 +699,7 @@ class SimpleCalendarCompatibilityBridge {
       id: 'foundryvtt-simple-calendar',
       title: 'Simple Calendar (Compatibility Bridge)',
       active: true,
-      version: '2.4.18', // Version that Simple Weather expects
+      version: FAKE_SIMPLE_CALENDAR_VERSION,
       compatibility: {
         minimum: '13',
         verified: '13',
@@ -1107,7 +1212,7 @@ Hooks.once('init', () => {
       id: 'foundryvtt-simple-calendar',
       title: 'Simple Calendar (Compatibility Bridge)',
       active: true,
-      version: '2.4.18', // Version that Simple Weather expects
+      version: FAKE_SIMPLE_CALENDAR_VERSION,
       compatibility: {
         minimum: '13',
         verified: '13',
@@ -1142,11 +1247,18 @@ Hooks.once('init', () => {
       },
     };
 
-    // Add to game.modules immediately
-    (game.modules as any).set('foundryvtt-simple-calendar', fakeModule);
-    console.log(
-      '🌉 Simple Calendar Compatibility Bridge | Fake Simple Calendar module registered during init'
-    );
+    // Add to game.modules immediately with error handling
+    try {
+      (game.modules as any).set('foundryvtt-simple-calendar', fakeModule);
+      console.log(
+        '🌉 Simple Calendar Compatibility Bridge | Fake Simple Calendar module registered during init'
+      );
+    } catch (error) {
+      console.error(
+        '🌉 Simple Calendar Compatibility Bridge | Failed to register fake module during init:',
+        error
+      );
+    }
   }
 
   // Note: simple-calendar-init hook will be fired by HookBridge.initialize()
