@@ -10,33 +10,226 @@ import { HookBridge } from './api/hooks';
 import type { CalendarProvider } from './types';
 
 /**
- * CRITICAL: Expose SimpleCalendar immediately at module parse time
- * Simple Weather checks for 'SimpleCalendar' in globalThis when its module script loads
- * This must happen before any hooks, at the top level of our module
+ * Version number that Simple Weather expects to see
+ * This matches Simple Calendar v2.4.18 for compatibility
  */
-console.log(
-  '🌉 Simple Calendar Compatibility Bridge | Exposing SimpleCalendar at module parse time'
-);
+const FAKE_SIMPLE_CALENDAR_VERSION = '2.4.18';
+
+/**
+ * CRITICAL: Expose SimpleCalendar immediately at module parse time
+ *
+ * TIMING: When this module's ESModule file is parsed by the browser, this code runs
+ * immediately to expose the SimpleCalendar global. However, module load order is
+ * UNPREDICTABLE - Simple Weather's script may parse before or after ours.
+ *
+ * If Simple Weather loads first, its parse-time check `if ('SimpleCalendar' in globalThis)`
+ * will fail and it won't register its hooks. This is unavoidable without controlling
+ * module load order, which Foundry does not provide.
+ *
+ * If our bridge loads first, this global is available when Simple Weather parses,
+ * and its integration will work correctly.
+ */
+console.log('🌉 Simple Calendar Compatibility Bridge | Initializing (parse-time)');
 
 // Create a minimal SimpleCalendar object that Simple Weather can detect
+// CRITICAL: Include all methods Simple Weather checks during initialization
+// NOTE: These stub methods return minimal data until the real API is initialized
+// They will be replaced by the full bridge API during seasons-stars:ready hook
 const moduleParseTimeSimpleCalendar = {
   api: {
-    timestampToDate: () => ({ display: { monthName: '', day: '1', year: '2024' } }),
-    getCurrentDate: () => ({ display: { monthName: '', day: '1', year: '2024' } }),
+    // Core date/time methods
+    // These return stub data until real API is ready - Simple Weather should not cache these values
+    timestampToDate: (_timestamp?: number) => {
+      // Delegate to real API if available, otherwise return stub
+      if (
+        (window as any).SimpleCalendar?.api?.timestampToDate &&
+        (window as any).SimpleCalendar.api.timestampToDate !==
+          moduleParseTimeSimpleCalendar.api.timestampToDate
+      ) {
+        return (window as any).SimpleCalendar.api.timestampToDate(_timestamp);
+      }
+      return {
+        year: 2024,
+        month: 0, // 0-based for Simple Calendar compatibility
+        day: 0, // 0-based for Simple Calendar compatibility
+        hour: 0,
+        minute: 0,
+        second: 0,
+        display: {
+          monthName: 'January',
+          day: '1',
+          year: '2024',
+          time: '00:00',
+        },
+      };
+    },
+    getCurrentDate: () => {
+      // Delegate to real API if available
+      if (
+        (window as any).SimpleCalendar?.api?.getCurrentDate &&
+        (window as any).SimpleCalendar.api.getCurrentDate !==
+          moduleParseTimeSimpleCalendar.api.getCurrentDate
+      ) {
+        return (window as any).SimpleCalendar.api.getCurrentDate();
+      }
+      return {
+        year: 2024,
+        month: 0, // 0-based
+        day: 0, // 0-based
+        hour: 0,
+        minute: 0,
+        second: 0,
+        display: {
+          monthName: 'January',
+          day: '1',
+          year: '2024',
+          time: '00:00',
+        },
+      };
+    },
+    // Season/climate methods Simple Weather uses for generation
+    getCurrentSeason: () => {
+      // Delegate to real API if available
+      if (
+        (window as any).SimpleCalendar?.api?.getCurrentSeason &&
+        (window as any).SimpleCalendar.api.getCurrentSeason !==
+          moduleParseTimeSimpleCalendar.api.getCurrentSeason
+      ) {
+        return (window as any).SimpleCalendar.api.getCurrentSeason();
+      }
+      // Return null until real API is ready to avoid misleading season data
+      return null;
+    },
+    // Note methods for weather storage
+    getNotesForDay: (_year?: number, _month?: number, _day?: number) => {
+      // Delegate to real API if available
+      if (
+        (window as any).SimpleCalendar?.api?.getNotesForDay &&
+        (window as any).SimpleCalendar.api.getNotesForDay !==
+          moduleParseTimeSimpleCalendar.api.getNotesForDay
+      ) {
+        return (window as any).SimpleCalendar.api.getNotesForDay(_year, _month, _day);
+      }
+      return [];
+    },
+    addNote: (...args: any[]) => {
+      // Delegate to real API if available
+      if (
+        (window as any).SimpleCalendar?.api?.addNote &&
+        (window as any).SimpleCalendar.api.addNote !== moduleParseTimeSimpleCalendar.api.addNote
+      ) {
+        return (window as any).SimpleCalendar.api.addNote(...args);
+      }
+      // Reject until real API is ready to avoid fake note IDs
+      return Promise.reject(new Error('Simple Calendar API not yet initialized'));
+    },
+    removeNote: (...args: any[]) => {
+      // Delegate to real API if available
+      if (
+        (window as any).SimpleCalendar?.api?.removeNote &&
+        (window as any).SimpleCalendar.api.removeNote !==
+          moduleParseTimeSimpleCalendar.api.removeNote
+      ) {
+        return (window as any).SimpleCalendar.api.removeNote(...args);
+      }
+      return false;
+    },
+    // Time advancement
+    setDate: (...args: any[]) => {
+      // Delegate to real API if available
+      if (
+        (window as any).SimpleCalendar?.api?.setDate &&
+        (window as any).SimpleCalendar.api.setDate !== moduleParseTimeSimpleCalendar.api.setDate
+      ) {
+        return (window as any).SimpleCalendar.api.setDate(...args);
+      }
+      return false;
+    },
+    changeDate: (...args: any[]) => {
+      // Delegate to real API if available
+      if (
+        (window as any).SimpleCalendar?.api?.changeDate &&
+        (window as any).SimpleCalendar.api.changeDate !==
+          moduleParseTimeSimpleCalendar.api.changeDate
+      ) {
+        return (window as any).SimpleCalendar.api.changeDate(...args);
+      }
+      return false;
+    },
+    // Month/weekday info
+    getAllMonths: () => {
+      // Delegate to real API if available
+      if (
+        (window as any).SimpleCalendar?.api?.getAllMonths &&
+        (window as any).SimpleCalendar.api.getAllMonths !==
+          moduleParseTimeSimpleCalendar.api.getAllMonths
+      ) {
+        return (window as any).SimpleCalendar.api.getAllMonths();
+      }
+      return [];
+    },
+    getAllSeasons: () => {
+      // Delegate to real API if available
+      if (
+        (window as any).SimpleCalendar?.api?.getAllSeasons &&
+        (window as any).SimpleCalendar.api.getAllSeasons !==
+          moduleParseTimeSimpleCalendar.api.getAllSeasons
+      ) {
+        return (window as any).SimpleCalendar.api.getAllSeasons();
+      }
+      return [];
+    },
+    // Module status
+    isSimpleCalendar: () => true, // Simple Weather may check this
   },
   Hooks: {
     DateTimeChange: 'simple-calendar-date-time-change',
     Init: 'simple-calendar-init',
     ClockStartStop: 'simple-calendar-clock-start-stop',
+    Ready: 'simple-calendar-ready',
+  },
+  // Icons constants for season-based weather
+  Icons: {
+    Fall: 'fall',
+    Winter: 'winter',
+    Spring: 'spring',
+    Summer: 'summer',
   },
 };
 
 // Expose globally immediately - this happens when the module script is parsed
+// NOTE: Due to unpredictable module load order, Simple Weather may or may not
+// see this global when its own script parses. This is a timing race we cannot control.
 (window as any).SimpleCalendar = moduleParseTimeSimpleCalendar;
 (globalThis as any).SimpleCalendar = moduleParseTimeSimpleCalendar;
 
+console.log('🌉 Simple Calendar Compatibility Bridge | SimpleCalendar global exposed (parse-time)');
+
+// Add diagnostic function to help debug Simple Weather integration issues
+(globalThis as any).debugSimpleCalendarBridge = () => {
+  const diagnostics = {
+    simpleCalendarGlobal: !!(globalThis as any).SimpleCalendar,
+    simpleCalendarAPI: !!(globalThis as any).SimpleCalendar?.api,
+    simpleCalendarHooks: !!(globalThis as any).SimpleCalendar?.Hooks,
+    simpleCalendarIcons: !!(globalThis as any).SimpleCalendar?.Icons,
+    fakeModuleRegistered: !!game.modules?.get('foundryvtt-simple-calendar'),
+    fakeModuleActive: game.modules?.get('foundryvtt-simple-calendar')?.active,
+    simpleWeatherDetected: !!game.modules?.get('foundryvtt-simple-weather'),
+    simpleWeatherActive: game.modules?.get('foundryvtt-simple-weather')?.active,
+    seasonsStarsDetected: !!game.modules?.get('seasons-and-stars'),
+    seasonsStarsActive: game.modules?.get('seasons-and-stars')?.active,
+    seasonsStarsAPI: !!(game as any).seasonsStars,
+    apiMethods: (globalThis as any).SimpleCalendar?.api
+      ? Object.keys((globalThis as any).SimpleCalendar.api)
+      : [],
+  };
+
+  console.log('🌉 Simple Calendar Compatibility Bridge Diagnostics:', diagnostics);
+  return diagnostics;
+};
+
 console.log(
-  '🌉 Simple Calendar Compatibility Bridge | SimpleCalendar exposed at parse time - Simple Weather should detect it'
+  '🌉 Simple Calendar Compatibility Bridge | Diagnostic function available: debugSimpleCalendarBridge()'
 );
 
 // Add minimal CSS classes that Simple Weather expects for attached mode
@@ -513,7 +706,7 @@ class SimpleCalendarCompatibilityBridge {
       id: 'foundryvtt-simple-calendar',
       title: 'Simple Calendar (Compatibility Bridge)',
       active: true,
-      version: '2.4.18', // Version that Simple Weather expects
+      version: FAKE_SIMPLE_CALENDAR_VERSION,
       compatibility: {
         minimum: '13',
         verified: '13',
@@ -996,33 +1189,102 @@ class SimpleCalendarCompatibilityBridge {
 let compatBridge: SimpleCalendarCompatibilityBridge;
 
 /**
- * CRITICAL: Expose SimpleCalendar as early as possible
- * Simple Weather checks for 'SimpleCalendar' in globalThis during its module initialization
- * We need to expose it before Simple Weather's init hook runs
- */
-
-/**
- * Module initialization
+ * Module initialization - Register fake module as early as possible
+ *
+ * TIMING CONSTRAINTS:
+ * - Parse-time global exposure happens immediately when this file loads
+ * - game.modules Collection is populated by Foundry BEFORE any ESModules load
+ * - Init hooks fire AFTER all ESModules have been parsed
+ * - Simple Weather's checkDependencies() runs in ready hook
+ *
+ * By registering the fake module in init hook, we ensure game.modules.get()
+ * will find it when Simple Weather's ready hook runs and calls checkDependencies().
+ * This is the earliest we can register since game.modules is read-only before hooks.
  */
 Hooks.once('init', () => {
   console.log('🌉 Simple Calendar Compatibility Bridge | Module initializing');
   compatBridge = new SimpleCalendarCompatibilityBridge();
+
+  // Register fake Simple Calendar module entry in game.modules Collection
+  // This makes game.modules.get('foundryvtt-simple-calendar') return a valid module
+  const seasonsStarsModule = game.modules.get('seasons-and-stars');
+  const simpleWeatherModule = game.modules.get('foundryvtt-simple-weather');
+
+  if (
+    (seasonsStarsModule?.active || simpleWeatherModule?.active) &&
+    !game.modules.get('foundryvtt-simple-calendar')
+  ) {
+    console.log(
+      '🌉 Simple Calendar Compatibility Bridge | Registering fake SC module during init for early detection'
+    );
+
+    // Create the fake module entry immediately with all properties Simple Weather might check
+    const fakeModule = {
+      id: 'foundryvtt-simple-calendar',
+      title: 'Simple Calendar (Compatibility Bridge)',
+      active: true,
+      version: FAKE_SIMPLE_CALENDAR_VERSION,
+      compatibility: {
+        minimum: '13',
+        verified: '13',
+        maximum: '13',
+      },
+      authors: [{ name: 'Simple Calendar Compatibility Bridge' }],
+      esmodules: [],
+      styles: [],
+      languages: [],
+      packs: [],
+      scripts: [],
+      relationships: {
+        requires: [],
+        recommends: [],
+        conflicts: [],
+        systems: [],
+      },
+      description: 'Compatibility bridge providing Simple Calendar API for modern calendar modules',
+      url: '',
+      readme: '',
+      bugs: '',
+      flags: {},
+      socket: false,
+      // Add toObject method in case Simple Weather checks it
+      toObject: function () {
+        return {
+          id: this.id,
+          title: this.title,
+          active: this.active,
+          version: this.version,
+        };
+      },
+    };
+
+    // Add to game.modules immediately with error handling
+    try {
+      (game.modules as any).set('foundryvtt-simple-calendar', fakeModule);
+      console.log(
+        '🌉 Simple Calendar Compatibility Bridge | Fake Simple Calendar module registered during init'
+      );
+    } catch (error) {
+      console.error(
+        '🌉 Simple Calendar Compatibility Bridge | Failed to register fake module during init:',
+        error
+      );
+    }
+  }
+
+  // Note: simple-calendar-init hook will be fired by HookBridge.initialize()
+  // when the bridge is fully initialized during seasons-stars:ready
 });
 
 /**
- * Setup fake module registration early for dependency checking
+ * Setup hook - Continue with additional setup if needed
  */
 Hooks.once('setup', () => {
   console.log('🌉 Simple Calendar Compatibility Bridge | Setup hook firing');
 
-  // Register fake module immediately if Seasons & Stars module is active
-  // This prevents Simple Weather from showing errors while we wait for the API
-  const seasonsStarsModule = game.modules.get('seasons-and-stars');
-  if (seasonsStarsModule?.active && !game.modules.get('foundryvtt-simple-calendar')) {
-    console.log(
-      '🌉 Simple Calendar Compatibility Bridge | Pre-registering fake SC module for dependency checks'
-    );
-    compatBridge.registerFakeSimpleCalendarModule();
+  // Module should already be registered, but verify
+  if (game.modules.get('foundryvtt-simple-calendar')) {
+    console.log('🌉 Simple Calendar Compatibility Bridge | Fake SC module already registered');
   }
 });
 
@@ -1080,6 +1342,9 @@ Hooks.once('seasons-stars:ready', () => {
   console.log(
     '🌉 Simple Calendar Compatibility Bridge | Setup complete - API ready for Item Piles ready hook'
   );
+
+  // Note: simple-calendar-ready hook will be fired by HookBridge.emitReadyHook()
+  // 5 seconds after HookBridge.initialize() completes (matches Simple Calendar behavior)
 });
 
 // No longer needed - bridge initializes immediately during ready hook
