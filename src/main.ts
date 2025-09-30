@@ -17,12 +17,19 @@ const FAKE_SIMPLE_CALENDAR_VERSION = '2.4.18';
 
 /**
  * CRITICAL: Expose SimpleCalendar immediately at module parse time
- * Simple Weather checks for 'SimpleCalendar' in globalThis when its module script loads
- * This must happen before any hooks, at the top level of our module
+ *
+ * TIMING: When this module's ESModule file is parsed by the browser, this code runs
+ * immediately to expose the SimpleCalendar global. However, module load order is
+ * UNPREDICTABLE - Simple Weather's script may parse before or after ours.
+ *
+ * If Simple Weather loads first, its parse-time check `if ('SimpleCalendar' in globalThis)`
+ * will fail and it won't register its hooks. This is unavoidable without controlling
+ * module load order, which Foundry does not provide.
+ *
+ * If our bridge loads first, this global is available when Simple Weather parses,
+ * and its integration will work correctly.
  */
-console.log(
-  '🌉 Simple Calendar Compatibility Bridge | Exposing SimpleCalendar at module parse time'
-);
+console.log('🌉 Simple Calendar Compatibility Bridge | Initializing (parse-time)');
 
 // Create a minimal SimpleCalendar object that Simple Weather can detect
 // CRITICAL: Include all methods Simple Weather checks during initialization
@@ -191,12 +198,12 @@ const moduleParseTimeSimpleCalendar = {
 };
 
 // Expose globally immediately - this happens when the module script is parsed
+// NOTE: Due to unpredictable module load order, Simple Weather may or may not
+// see this global when its own script parses. This is a timing race we cannot control.
 (window as any).SimpleCalendar = moduleParseTimeSimpleCalendar;
 (globalThis as any).SimpleCalendar = moduleParseTimeSimpleCalendar;
 
-console.log(
-  '🌉 Simple Calendar Compatibility Bridge | SimpleCalendar exposed at parse time - Simple Weather should detect it'
-);
+console.log('🌉 Simple Calendar Compatibility Bridge | SimpleCalendar global exposed (parse-time)');
 
 // Add diagnostic function to help debug Simple Weather integration issues
 (globalThis as any).debugSimpleCalendarBridge = () => {
@@ -1182,20 +1189,24 @@ class SimpleCalendarCompatibilityBridge {
 let compatBridge: SimpleCalendarCompatibilityBridge;
 
 /**
- * CRITICAL: Expose SimpleCalendar as early as possible
- * Simple Weather checks for 'SimpleCalendar' in globalThis during its module initialization
- * We need to expose it before Simple Weather's init hook runs
- */
-
-/**
- * Module initialization - Register fake module ASAP
+ * Module initialization - Register fake module as early as possible
+ *
+ * TIMING CONSTRAINTS:
+ * - Parse-time global exposure happens immediately when this file loads
+ * - game.modules Collection is populated by Foundry BEFORE any ESModules load
+ * - Init hooks fire AFTER all ESModules have been parsed
+ * - Simple Weather's checkDependencies() runs in ready hook
+ *
+ * By registering the fake module in init hook, we ensure game.modules.get()
+ * will find it when Simple Weather's ready hook runs and calls checkDependencies().
+ * This is the earliest we can register since game.modules is read-only before hooks.
  */
 Hooks.once('init', () => {
   console.log('🌉 Simple Calendar Compatibility Bridge | Module initializing');
   compatBridge = new SimpleCalendarCompatibilityBridge();
 
-  // CRITICAL: Register fake Simple Calendar module immediately during init
-  // Simple Weather checks for this module during its own initialization
+  // Register fake Simple Calendar module entry in game.modules Collection
+  // This makes game.modules.get('foundryvtt-simple-calendar') return a valid module
   const seasonsStarsModule = game.modules.get('seasons-and-stars');
   const simpleWeatherModule = game.modules.get('foundryvtt-simple-weather');
 
