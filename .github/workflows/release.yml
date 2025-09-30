@@ -20,7 +20,7 @@ jobs:
           fetch-depth: 0
 
       - name: Release Simple Calendar Compatibility Bridge
-        uses: rayners/foundry-module-actions/release@v4
+        uses: rayners/foundry-module-actions/release@v6.0.0
         with:
           node-version: '20'
           build-command: 'npm run build'
