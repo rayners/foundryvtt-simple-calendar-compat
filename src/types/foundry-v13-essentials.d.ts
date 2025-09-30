@@ -84,6 +84,7 @@ interface User {
   id: string;
   name: string;
   isGM: boolean;
+  active: boolean;
 }
 
 interface Module {
