@@ -1252,13 +1252,12 @@ Hooks.once('init', () => {
       socket: false,
       download: '',
       manifest: '',
+      // Module is active since we're providing the compatibility
+      active: true,
     };
 
     // Create actual Module instance using Foundry's constructor
     const fakeModule = new (globalThis as any).foundry.packages.Module(fakeModuleData);
-
-    // Mark as active since we're providing the compatibility
-    (fakeModule as any).active = true;
 
     // Add to game.modules immediately with error handling
     try {
