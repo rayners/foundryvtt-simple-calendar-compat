@@ -1254,13 +1254,32 @@ Hooks.once('init', () => {
       socket: false,
       download: '',
       manifest: '',
-      // Add toObject method in case Simple Weather checks it
+      // Add toObject method - must return full object for Foundry's module management UI
       toObject: function () {
         return {
           id: this.id,
           title: this.title,
           active: this.active,
           version: this.version,
+          compatibility: this.compatibility,
+          authors: this.authors,
+          esmodules: this.esmodules,
+          styles: this.styles,
+          languages: this.languages,
+          packs: this.packs,
+          packFolders: this.packFolders,
+          scripts: this.scripts,
+          relationships: this.relationships,
+          description: this.description,
+          url: this.url,
+          readme: this.readme,
+          bugs: this.bugs,
+          changelog: this.changelog,
+          flags: this.flags,
+          media: this.media,
+          socket: this.socket,
+          download: this.download,
+          manifest: this.manifest,
         };
       },
     };
