@@ -1947,6 +1947,8 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
       hour,
       minute,
       seconds, // Note: 'seconds' not 'second' (Simple Calendar format)
+      weekdays: [], // Empty array when no calendar available
+      dayOfTheWeek: 0, // Default to first day of week
     };
   }
 
@@ -1970,8 +1972,14 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
       this.seasonsStars?.api?.formatDate?.(ssDate, { format: '{{month.name}}' }) ||
       `Month ${ssDate.month}`;
 
+    // Get weekday names and calculate day of week for Simple Weather compatibility
+    const weekdayNames = this.seasonsStars?.api?.getWeekdayNames?.() || [];
+    const dayOfTheWeek = ssDate.weekday !== undefined ? ssDate.weekday : 0;
+
     return {
       ...baseDate,
+      weekdays: weekdayNames,
+      dayOfTheWeek: dayOfTheWeek,
       display: {
         monthName,
         day: ssDate.day.toString(),

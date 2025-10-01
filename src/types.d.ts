@@ -47,6 +47,10 @@ export type SimpleCalendarDateTime = SimpleCalendarDate &
       day: string;
       year: string;
     };
+    /** Array of weekday names (required by Simple Weather) */
+    weekdays?: string[];
+    /** Index of the current day of the week (required by Simple Weather) */
+    dayOfTheWeek?: number;
   };
 
 /**

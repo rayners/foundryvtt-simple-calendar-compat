@@ -1219,7 +1219,8 @@ Hooks.once('init', () => {
     );
 
     // Create the fake module entry immediately with all properties Simple Weather might check
-    const fakeModule = {
+    // IMPORTANT: Must match real Module structure or Foundry's module management UI breaks
+    const fakeModule: any = {
       id: 'foundryvtt-simple-calendar',
       title: 'Simple Calendar (Compatibility Bridge)',
       active: true,
@@ -1234,19 +1235,25 @@ Hooks.once('init', () => {
       styles: [],
       languages: [],
       packs: [],
+      packFolders: [], // v13 compendium folders
       scripts: [],
       relationships: {
         requires: [],
         recommends: [],
         conflicts: [],
         systems: [],
+        flags: {},
       },
       description: 'Compatibility bridge providing Simple Calendar API for modern calendar modules',
       url: '',
       readme: '',
       bugs: '',
+      changelog: '',
       flags: {},
+      media: [],
       socket: false,
+      download: '',
+      manifest: '',
       // Add toObject method in case Simple Weather checks it
       toObject: function () {
         return {
