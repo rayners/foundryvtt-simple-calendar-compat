@@ -1218,12 +1218,11 @@ Hooks.once('init', () => {
       '🌉 Simple Calendar Compatibility Bridge | Registering fake SC module during init for early detection'
     );
 
-    // Create the fake module entry immediately with all properties Simple Weather might check
-    // IMPORTANT: Must match real Module structure or Foundry's module management UI breaks
-    const fakeModule: any = {
+    // Create a real Foundry Module instance for proper compatibility
+    // IMPORTANT: Must be a real Module instance or Foundry's module management UI breaks
+    const fakeModuleData = {
       id: 'foundryvtt-simple-calendar',
       title: 'Simple Calendar (Compatibility Bridge)',
-      active: true,
       version: FAKE_SIMPLE_CALENDAR_VERSION,
       compatibility: {
         minimum: '13',
@@ -1235,14 +1234,13 @@ Hooks.once('init', () => {
       styles: [],
       languages: [],
       packs: [],
-      packFolders: [], // v13 compendium folders
+      packFolders: [],
       scripts: [],
       relationships: {
         requires: [],
         recommends: [],
         conflicts: [],
         systems: [],
-        flags: {},
       },
       description: 'Compatibility bridge providing Simple Calendar API for modern calendar modules',
       url: '',
@@ -1254,35 +1252,13 @@ Hooks.once('init', () => {
       socket: false,
       download: '',
       manifest: '',
-      // Add toObject method - must return full object for Foundry's module management UI
-      toObject: function () {
-        return {
-          id: this.id,
-          title: this.title,
-          active: this.active,
-          version: this.version,
-          compatibility: this.compatibility,
-          authors: this.authors,
-          esmodules: this.esmodules,
-          styles: this.styles,
-          languages: this.languages,
-          packs: this.packs,
-          packFolders: this.packFolders,
-          scripts: this.scripts,
-          relationships: this.relationships,
-          description: this.description,
-          url: this.url,
-          readme: this.readme,
-          bugs: this.bugs,
-          changelog: this.changelog,
-          flags: this.flags,
-          media: this.media,
-          socket: this.socket,
-          download: this.download,
-          manifest: this.manifest,
-        };
-      },
     };
+
+    // Create actual Module instance using Foundry's constructor
+    const fakeModule = new (globalThis as any).foundry.packages.Module(fakeModuleData);
+
+    // Mark as active since we're providing the compatibility
+    (fakeModule as any).active = true;
 
     // Add to game.modules immediately with error handling
     try {
