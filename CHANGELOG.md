@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Your support helps fund bridge improvements and additional calendar module support!
 
+## [0.3.1](https://github.com/rayners/foundryvtt-simple-calendar-compat/compare/v0.3.0...v0.3.1) (2025-10-01)
+
+
+### Bug Fixes
+
+* improve test setup with comprehensive Foundry mocks ([#46](https://github.com/rayners/foundryvtt-simple-calendar-compat/issues/46)) ([cd78ce8](https://github.com/rayners/foundryvtt-simple-calendar-compat/commit/cd78ce8f6b650964a086c8148dfda62a50f2be58))
+* update release workflows to match S&S working pattern ([2d2e020](https://github.com/rayners/foundryvtt-simple-calendar-compat/commit/2d2e0209fd6c1508707a1487033bbf84b36ece47))
+
 ## [0.3.0](https://github.com/rayners/foundryvtt-simple-calendar-compat/compare/v0.2.0...v0.3.0) (2025-09-30)
 
 
