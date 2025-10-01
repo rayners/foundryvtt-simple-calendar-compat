@@ -1218,11 +1218,11 @@ Hooks.once('init', () => {
       '🌉 Simple Calendar Compatibility Bridge | Registering fake SC module during init for early detection'
     );
 
-    // Create the fake module entry immediately with all properties Simple Weather might check
-    const fakeModule = {
+    // Create a real Foundry Module instance for proper compatibility
+    // IMPORTANT: Must be a real Module instance or Foundry's module management UI breaks
+    const fakeModuleData = {
       id: 'foundryvtt-simple-calendar',
       title: 'Simple Calendar (Compatibility Bridge)',
-      active: true,
       version: FAKE_SIMPLE_CALENDAR_VERSION,
       compatibility: {
         minimum: '13',
@@ -1234,6 +1234,7 @@ Hooks.once('init', () => {
       styles: [],
       languages: [],
       packs: [],
+      packFolders: [],
       scripts: [],
       relationships: {
         requires: [],
@@ -1245,18 +1246,18 @@ Hooks.once('init', () => {
       url: '',
       readme: '',
       bugs: '',
+      changelog: '',
       flags: {},
+      media: [],
       socket: false,
-      // Add toObject method in case Simple Weather checks it
-      toObject: function () {
-        return {
-          id: this.id,
-          title: this.title,
-          active: this.active,
-          version: this.version,
-        };
-      },
+      download: '',
+      manifest: '',
+      // Module is active since we're providing the compatibility
+      active: true,
     };
+
+    // Create actual Module instance using Foundry's constructor
+    const fakeModule = new (globalThis as any).foundry.packages.Module(fakeModuleData);
 
     // Add to game.modules immediately with error handling
     try {

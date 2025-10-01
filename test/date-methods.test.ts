@@ -26,6 +26,8 @@ describe('Simple Calendar API Bridge - Date Methods', () => {
         hour: 0,
         minute: 0,
         seconds: 0,
+        weekdays: [],
+        dayOfTheWeek: 0,
       });
     });
 
@@ -50,7 +52,7 @@ describe('Simple Calendar API Bridge - Date Methods', () => {
           setActiveCalendar: vi.fn(),
           getAvailableCalendars: vi.fn(),
           getMonthNames: vi.fn(),
-          getWeekdayNames: vi.fn(),
+          getWeekdayNames: () => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
           getActiveCalendar: vi.fn(),
         },
         widgets: {
@@ -81,6 +83,8 @@ describe('Simple Calendar API Bridge - Date Methods', () => {
         hour: 12,
         minute: 30,
         seconds: 45,
+        weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+        dayOfTheWeek: 3,
         display: {
           monthName: 'June',
           day: '15',
@@ -136,6 +140,8 @@ describe('Simple Calendar API Bridge - Date Methods', () => {
         hour: 0,
         minute: 0,
         seconds: 0,
+        weekdays: [],
+        dayOfTheWeek: 0,
       });
       expect(consoleSpy).toHaveBeenCalledWith('Failed to get current date:', expect.any(Error));
 

@@ -25,6 +25,8 @@ describe('Format Conversion Helpers', () => {
         hour: 0,
         minute: 0,
         seconds: 0,
+        weekdays: [],
+        dayOfTheWeek: 0,
       });
     });
 
