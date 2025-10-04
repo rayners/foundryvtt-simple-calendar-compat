@@ -272,8 +272,6 @@ const compatCSS = `
   #swr-fsc-container #swr-container {
     position: relative !important;
     width: auto !important;
-    min-width: 200px;
-    max-width: 300px;
     margin: 0 !important;
     padding: 0 !important;
     background: transparent !important;
@@ -281,18 +279,16 @@ const compatCSS = `
     box-sizing: border-box;
   }
 
-  /* Weather wrapper */
+  /* Weather wrapper - let it size naturally */
   #swr-fsc-container #swr-wrapper {
-    width: 100%;
     display: flex;
     flex-direction: column;
     gap: 8px;
   }
 
-  /* Calendar and weather boxes */
+  /* Calendar and weather boxes - let them use their natural widths */
   #swr-fsc-container #swr-calendar-box,
   #swr-fsc-container #swr-weather-box {
-    width: 100%;
     box-sizing: border-box;
   }
 
