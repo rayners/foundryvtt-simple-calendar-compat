@@ -33,6 +33,18 @@ interface SeasonsStarsIntegration {
 
   hasFeature(feature: string): boolean;
   getFeatureVersion(feature: string): string | null;
+
+  // Sidebar button management (v0.19.0+)
+  addSidebarButton(config: {
+    name: string;
+    icon: string;
+    tooltip: string;
+    callback: () => void;
+    only?: ('main' | 'mini' | 'grid')[];
+    except?: ('main' | 'mini' | 'grid')[];
+  }): void;
+  removeSidebarButton(name: string): void;
+  hasSidebarButton(name: string): boolean;
 }
 
 interface SeasonsStarsAPI {
@@ -151,10 +163,27 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
         `Simple Calendar API bridging to Seasons & Stars v${this.seasonsStars.version} via Integration Interface`
       );
       this.setupHookBridging();
+
+      // Register any buttons that were added before S&S was ready
+      this.registerPendingButtons();
     } else {
       console.warn(
         'Simple Calendar API Bridge: No Seasons & Stars integration available, using fallback mode'
       );
+    }
+  }
+
+  /**
+   * Register any sidebar buttons that were added before S&S was available
+   */
+  private registerPendingButtons(): void {
+    if (this.sidebarButtons.length > 0) {
+      console.log(
+        `🌉 Registering ${this.sidebarButtons.length} pending sidebar button(s) with S&S`
+      );
+      this.sidebarButtons.forEach(btn => {
+        this.addButtonToWidgets(btn.name, btn.icon, btn.tooltip || '', btn.callback);
+      });
     }
   }
 
@@ -1206,6 +1235,56 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
   }
 
   /**
+   * Remove a sidebar button from calendar widgets
+   *
+   * @param name - Unique button identifier to remove
+   *
+   * @example
+   * ```typescript
+   * SimpleCalendar.api.removeSidebarButton('weather');
+   * ```
+   */
+  removeSidebarButton(name: string): void {
+    console.log(`🌉 Simple Calendar Bridge: removeSidebarButton called for "${name}"`);
+
+    // Remove from internal registry
+    const index = this.sidebarButtons.findIndex(btn => btn.name === name);
+    if (index !== -1) {
+      this.sidebarButtons.splice(index, 1);
+    }
+
+    // Remove from S&S widgets if available
+    if (!this.seasonsStars) {
+      console.warn('🌉 Cannot remove sidebar button: Seasons & Stars integration not available');
+      return;
+    }
+
+    this.seasonsStars.removeSidebarButton(name);
+  }
+
+  /**
+   * Check if a sidebar button exists
+   *
+   * @param name - Unique button identifier to check
+   * @returns True if button exists
+   *
+   * @example
+   * ```typescript
+   * if (SimpleCalendar.api.hasSidebarButton('weather')) {
+   *   console.log('Weather button is registered');
+   * }
+   * ```
+   */
+  hasSidebarButton(name: string): boolean {
+    if (!this.seasonsStars) {
+      // Fallback to internal registry when S&S not available
+      return this.sidebarButtons.some(btn => btn.name === name);
+    }
+
+    return this.seasonsStars.hasSidebarButton(name);
+  }
+
+  /**
    * Add a button to existing Seasons & Stars widgets using S&S Integration API
    */
   private addButtonToWidgets(
@@ -1214,67 +1293,33 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
     tooltip: string,
     callback: Function
   ): void {
-    console.log(`🌟 Adding weather button "${name}" to S&S widgets via Integration API`);
-
-    if (!this.seasonsStars?.widgets) {
-      console.warn('🌟 S&S widgets interface not available, falling back to DOM manipulation');
-      this.addButtonToWidgetsViaDOM(name, icon, tooltip, callback);
+    if (!this.seasonsStars) {
+      console.warn('🌉 Cannot add sidebar button: Seasons & Stars integration not available');
       return;
     }
 
-    try {
-      // Try to add button to mini widget first (preferred for Simple Weather)
-      const miniWidget = this.seasonsStars.widgets.mini;
-      if (miniWidget) {
-        // Ensure Simple Calendar compatibility DOM structure first
-        this.addSimpleCalendarCompatibility(miniWidget);
-
-        // Check if button already exists to avoid duplicates
-        if (!miniWidget.hasSidebarButton(name)) {
-          miniWidget.addSidebarButton(name, icon, tooltip, callback);
-          console.log(`🌟 Successfully added "${name}" button to mini widget via S&S API`);
-        } else {
-          console.log(`🌟 Button "${name}" already exists on mini widget`);
-        }
-      }
-
-      // Also try main widget for consistency
-      const mainWidget = this.seasonsStars.widgets.main;
-      if (mainWidget) {
-        // Ensure Simple Calendar compatibility DOM structure first
-        this.addSimpleCalendarCompatibility(mainWidget);
-
-        if (!mainWidget.hasSidebarButton(name)) {
-          mainWidget.addSidebarButton(name, icon, tooltip, callback);
-          console.log(`🌟 Successfully added "${name}" button to main widget via S&S API`);
-        } else {
-          console.log(`🌟 Button "${name}" already exists on main widget`);
-        }
-      }
-
-      // Also try grid widget if available
-      const gridWidget = this.seasonsStars.widgets.grid;
-      if (gridWidget) {
-        // Ensure Simple Calendar compatibility DOM structure first
-        this.addSimpleCalendarCompatibility(gridWidget);
-
-        if (!gridWidget.hasSidebarButton(name)) {
-          gridWidget.addSidebarButton(name, icon, tooltip, callback);
-          console.log(`🌟 Successfully added "${name}" button to grid widget via S&S API`);
-        } else {
-          console.log(`🌟 Button "${name}" already exists on grid widget`);
-        }
-      }
-
-      if (!miniWidget && !mainWidget && !gridWidget) {
-        console.warn('🌟 No S&S widgets available, falling back to DOM manipulation');
-        this.addButtonToWidgetsViaDOM(name, icon, tooltip, callback);
-      }
-    } catch (error) {
-      console.error(`🌟 Failed to add button via S&S API:`, error);
-      console.log(`🌟 Falling back to DOM manipulation for button "${name}"`);
-      this.addButtonToWidgetsViaDOM(name, icon, tooltip, callback);
+    // Normalize icon class - Simple Weather passes "fa-cloud-sun" but S&S needs "fas fa-cloud-sun"
+    let normalizedIcon = icon;
+    if (icon && !icon.includes('fa ') && !icon.includes('fas ') && !icon.includes('far ')) {
+      normalizedIcon = `fas ${icon}`;
+      console.log(`🌉 Normalized icon from "${icon}" to "${normalizedIcon}"`);
     }
+
+    console.log(`🌉 Registering sidebar button:`, {
+      name,
+      icon: normalizedIcon,
+      tooltip,
+      callbackType: typeof callback,
+      callback: callback.toString().substring(0, 100),
+    });
+
+    // Use S&S v0.19.0+ Integration Interface sidebar button management
+    this.seasonsStars.addSidebarButton({
+      name,
+      icon: normalizedIcon,
+      tooltip,
+      callback: callback as () => void,
+    });
   }
 
   /**

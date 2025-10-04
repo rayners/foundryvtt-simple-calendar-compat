@@ -81,8 +81,9 @@ export class HookBridge {
 
   /**
    * Initialize hook bridging between provider and Simple Calendar format
+   * @param skipInitHook - If true, don't fire the Init hook (caller will fire it later for timing control)
    */
-  initialize(): void {
+  initialize(skipInitHook: boolean = false): void {
     console.log(`Simple Calendar Bridge: Setting up hook bridging for ${this.provider.name}`);
 
     // Listen for provider-specific hooks and translate to Simple Calendar format
@@ -91,21 +92,25 @@ export class HookBridge {
     // Set up Foundry core hooks
     this.setupFoundryHooks();
 
-    // Emit the initialization hook that modules listen for
-    console.log('🌉 Simple Calendar Bridge: About to emit Init hook');
-    console.log('🌉 Simple Calendar Bridge: Hook name:', this.SIMPLE_CALENDAR_HOOKS.Init);
-    console.log(
-      '🌉 Simple Calendar Bridge: Registered listeners before Init:',
-      (Hooks as HooksSystemWithInternal)._hooks?.[this.SIMPLE_CALENDAR_HOOKS.Init]?.length || 0
-    );
+    // Emit the initialization hook that modules listen for (unless told to skip)
+    if (!skipInitHook) {
+      console.log('🌉 Simple Calendar Bridge: About to emit Init hook');
+      console.log('🌉 Simple Calendar Bridge: Hook name:', this.SIMPLE_CALENDAR_HOOKS.Init);
+      console.log(
+        '🌉 Simple Calendar Bridge: Registered listeners before Init:',
+        (Hooks as HooksSystemWithInternal)._hooks?.[this.SIMPLE_CALENDAR_HOOKS.Init]?.length || 0
+      );
 
-    Hooks.callAll(this.SIMPLE_CALENDAR_HOOKS.Init);
+      Hooks.callAll(this.SIMPLE_CALENDAR_HOOKS.Init);
 
-    console.log('🌉 Simple Calendar Bridge: Init hook emitted');
-    console.log(
-      '🌉 Simple Calendar Bridge: renderMainApp listeners after Init:',
-      (Hooks as HooksSystemWithInternal)._hooks?.['renderMainApp']?.length || 0
-    );
+      console.log('🌉 Simple Calendar Bridge: Init hook emitted');
+      console.log(
+        '🌉 Simple Calendar Bridge: renderMainApp listeners after Init:',
+        (Hooks as HooksSystemWithInternal)._hooks?.['renderMainApp']?.length || 0
+      );
+    } else {
+      console.log('🌉 Simple Calendar Bridge: Skipping Init hook emission (will be fired later)');
+    }
 
     // Check and emit primary GM hook
     this.triggerPrimaryGMCheck();
