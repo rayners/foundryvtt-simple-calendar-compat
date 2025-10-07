@@ -226,6 +226,25 @@ graph TD
 3. Check browser console for bridge initialization messages
 4. Ensure module load order: Calendar module → Bridge → Dependent modules
 
+### Simple Weather Module Loading Timing Issue
+
+**Known Issue**: Simple Weather integration may fail to activate due to **unpredictable ESModule load order**. A fix has been proposed in [Simple Weather PR #125](https://github.com/dovrosenberg/foundry-simple-weather/pull/125) but is not yet released.
+
+#### The Problem
+
+Simple Weather's integration with the Simple Calendar API can fail due to a timing race:
+
+1. **Module Registration**: Foundry registers all _real_ modules in `game.modules` **before** any module code executes
+2. **Parse-Time Detection**: Simple Weather checks for `SimpleCalendar` in `globalThis` when the module's ESModule file is **parsed** (at the top level)
+3. **Bridge Timing**: This bridge creates the fake `SimpleCalendar` global during its own **parse-time** execution
+4. **The Race**: ESModule load order is **unpredictable** - Simple Weather may parse before or after the bridge
+
+**Result**: If Simple Weather loads first, its parse-time check `if ('SimpleCalendar' in globalThis)` fails, and it never registers its hooks for calendar integration.
+
+#### Current Status
+
+Until PR #125 is merged and released, **Simple Weather integration with this bridge is unreliable**. The issue will be resolved when Simple Weather moves its `SimpleCalendar` detection from parse-time to the `setup` hook, which fires after all modules have been parsed.
+
 ### Missing Features?
 
 The bridge implements the complete Simple Calendar API. If something doesn't work:
