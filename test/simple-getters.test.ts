@@ -238,6 +238,23 @@ describe('Simple Calendar API Bridge - Simple Getters', () => {
         id: 'gregorian',
         name: 'Gregorian Calendar',
         description: 'Earth calendar',
+        currentDate: undefined,
+        general: {
+          gameWorldTimeIntegration: 'mixed',
+          showClock: true,
+          noteDefaultVisibility: false,
+          postNoteRemindersOnFoundryLoad: false,
+          pf2eSync: false,
+          dateFormat: {
+            date: 'MMMM DD, YYYY',
+            time: 'HH:mm:ss',
+            monthYear: 'MMMM YAYYYYYZ',
+            chatTime: 'MMMM DD, YYYY HH:mm:ss',
+          },
+          compactViewOptions: {
+            controlLayout: 'full',
+          },
+        },
         months: [],
         weekdays: [],
         year: { prefix: '', suffix: '', epoch: 0 },
@@ -245,6 +262,7 @@ describe('Simple Calendar API Bridge - Simple Getters', () => {
         seasons: [],
         moons: [],
         leapYear: { rule: 'none' },
+        noteCategories: [],
       });
     });
 
@@ -266,7 +284,13 @@ describe('Simple Calendar API Bridge - Simple Getters', () => {
             leapYear: { rule: 'gregorian' },
           }),
           getAvailableCalendars: vi.fn(),
-          getCurrentDate: vi.fn(),
+          getCurrentDate: () => ({
+            year: 1492,
+            month: 1, // 1-based in S&S
+            day: 15, // 1-based in S&S
+            weekday: 3,
+            time: { hour: 14, minute: 30, second: 45 },
+          }),
           worldTimeToDate: vi.fn(),
           dateToWorldTime: vi.fn(),
           formatDate: vi.fn(),
@@ -299,6 +323,28 @@ describe('Simple Calendar API Bridge - Simple Getters', () => {
         id: 'harptos',
         name: 'Calendar of Harptos',
         description: 'Forgotten Realms calendar',
+        currentDate: {
+          year: 1492,
+          month: 0, // 0-based in SC
+          day: 14, // 0-based in SC
+          seconds: 14 * 3600 + 30 * 60 + 45, // 52245 seconds
+        },
+        general: {
+          gameWorldTimeIntegration: 'mixed',
+          showClock: true,
+          noteDefaultVisibility: false,
+          postNoteRemindersOnFoundryLoad: false,
+          pf2eSync: false,
+          dateFormat: {
+            date: 'MMMM DD, YYYY',
+            time: 'HH:mm:ss',
+            monthYear: 'MMMM YAYYYYYZ',
+            chatTime: 'MMMM DD, YYYY HH:mm:ss',
+          },
+          compactViewOptions: {
+            controlLayout: 'full',
+          },
+        },
         months: [{ name: 'Hammer', length: 30 }],
         weekdays: [{ name: 'Moonsday' }],
         year: { prefix: '', suffix: ' DR', epoch: 1372 },
@@ -306,7 +352,196 @@ describe('Simple Calendar API Bridge - Simple Getters', () => {
         seasons: [{ name: 'Spring' }],
         moons: [{ name: 'Selûne' }],
         leapYear: { rule: 'gregorian' },
+        noteCategories: [],
       });
+    });
+
+    it('should include note categories when available', () => {
+      // Mock game.seasonsStars.noteCategories
+      const mockNoteCategories = {
+        getCategories: () => [
+          { id: 'holiday', name: 'Holiday', color: '#148e94', icon: 'fas fa-calendar' },
+          { id: 'event', name: 'Event', color: '#7b68ee', icon: 'fas fa-calendar-star' },
+          { id: 'reminder', name: 'Reminder', color: '#ffa500', icon: 'fas fa-bell' },
+        ],
+      };
+
+      (global as any).game.seasonsStars = {
+        noteCategories: mockNoteCategories,
+      };
+
+      const mockSeasonsStars = {
+        isAvailable: true,
+        version: '1.0.0',
+        api: {
+          getActiveCalendar: () => ({
+            id: 'gregorian',
+            name: 'Gregorian Calendar',
+            description: 'Earth calendar',
+          }),
+          getAvailableCalendars: vi.fn(),
+          getCurrentDate: vi.fn(),
+          worldTimeToDate: vi.fn(),
+          dateToWorldTime: vi.fn(),
+          formatDate: vi.fn(),
+          setActiveCalendar: vi.fn(),
+          getMonthNames: vi.fn(),
+          getWeekdayNames: vi.fn(),
+        },
+        widgets: {
+          main: null,
+          mini: null,
+          grid: null,
+          getPreferredWidget: vi.fn(),
+          onWidgetChange: vi.fn(),
+          offWidgetChange: vi.fn(),
+        },
+        hooks: {
+          onDateChanged: vi.fn(),
+          onCalendarChanged: vi.fn(),
+          onReady: vi.fn(),
+          off: vi.fn(),
+        },
+        hasFeature: vi.fn(),
+        getFeatureVersion: vi.fn(),
+      };
+
+      api = new SimpleCalendarAPIBridge(mockSeasonsStars as any);
+      const result = api.getCurrentCalendar();
+
+      expect(result).toBeDefined();
+      expect(result.noteCategories).toBeDefined();
+      expect(result.noteCategories).toHaveLength(3);
+      expect(result.noteCategories[0]).toEqual({
+        id: 'holiday',
+        name: 'Holiday',
+        color: '#148e94',
+        textColor: '#ffffff',
+      });
+      expect(result.noteCategories[1]).toEqual({
+        id: 'event',
+        name: 'Event',
+        color: '#7b68ee',
+        textColor: '#ffffff',
+      });
+
+      // Clean up
+      delete (global as any).game.seasonsStars;
+    });
+
+    it('should handle missing note categories gracefully', () => {
+      // No game.seasonsStars.noteCategories set
+      delete (global as any).game.seasonsStars;
+
+      const mockSeasonsStars = {
+        isAvailable: true,
+        version: '1.0.0',
+        api: {
+          getActiveCalendar: () => ({
+            id: 'gregorian',
+            name: 'Gregorian Calendar',
+            description: 'Earth calendar',
+          }),
+          getAvailableCalendars: vi.fn(),
+          getCurrentDate: vi.fn(),
+          worldTimeToDate: vi.fn(),
+          dateToWorldTime: vi.fn(),
+          formatDate: vi.fn(),
+          setActiveCalendar: vi.fn(),
+          getMonthNames: vi.fn(),
+          getWeekdayNames: vi.fn(),
+        },
+        widgets: {
+          main: null,
+          mini: null,
+          grid: null,
+          getPreferredWidget: vi.fn(),
+          onWidgetChange: vi.fn(),
+          offWidgetChange: vi.fn(),
+        },
+        hooks: {
+          onDateChanged: vi.fn(),
+          onCalendarChanged: vi.fn(),
+          onReady: vi.fn(),
+          off: vi.fn(),
+        },
+        hasFeature: vi.fn(),
+        getFeatureVersion: vi.fn(),
+      };
+
+      api = new SimpleCalendarAPIBridge(mockSeasonsStars as any);
+      const result = api.getCurrentCalendar();
+
+      expect(result).toBeDefined();
+      expect(result.noteCategories).toEqual([]);
+    });
+
+    it('should calculate seconds correctly with custom time configurations', () => {
+      const mockSeasonsStars = {
+        isAvailable: true,
+        version: '1.0.0',
+        api: {
+          getActiveCalendar: () => ({
+            id: 'custom-time',
+            name: 'Custom Time Calendar',
+            description: 'Fantasy calendar with non-standard time units',
+            time: {
+              hoursInDay: 20,       // 20-hour days
+              minutesInHour: 50,    // 50-minute hours
+              secondsInMinute: 40,  // 40-second minutes
+            },
+          }),
+          getAvailableCalendars: vi.fn(),
+          getCurrentDate: () => ({
+            year: 100,
+            month: 1,
+            day: 1,
+            weekday: 0,
+            time: { hour: 10, minute: 25, second: 30 },
+          }),
+          worldTimeToDate: vi.fn(),
+          dateToWorldTime: vi.fn(),
+          formatDate: vi.fn(),
+          setActiveCalendar: vi.fn(),
+          getMonthNames: vi.fn(),
+          getWeekdayNames: vi.fn(),
+        },
+        widgets: {
+          main: null,
+          mini: null,
+          grid: null,
+          getPreferredWidget: vi.fn(),
+          onWidgetChange: vi.fn(),
+          offWidgetChange: vi.fn(),
+        },
+        hooks: {
+          onDateChanged: vi.fn(),
+          onCalendarChanged: vi.fn(),
+          onReady: vi.fn(),
+          off: vi.fn(),
+        },
+        hasFeature: vi.fn(),
+        getFeatureVersion: vi.fn(),
+      };
+
+      api = new SimpleCalendarAPIBridge(mockSeasonsStars as any);
+      const result = api.getCurrentCalendar();
+
+      // Verify custom time configuration is preserved
+      expect(result.time).toEqual({
+        hoursInDay: 20,
+        minutesInHour: 50,
+        secondsInMinute: 40,
+      });
+
+      // Verify seconds calculation uses custom time units
+      // 10 hours * (50 min/hr * 40 sec/min) = 10 * 2000 = 20000
+      // 25 minutes * 40 sec/min = 1000
+      // 30 seconds = 30
+      // Total = 21030 seconds
+      const expectedSeconds = 10 * (50 * 40) + 25 * 40 + 30;
+      expect(result.currentDate.seconds).toBe(expectedSeconds);
+      expect(result.currentDate.seconds).toBe(21030);
     });
 
     it('should handle errors gracefully', () => {

@@ -5,7 +5,7 @@
 
 import { SeasonsStarsProvider } from './providers/seasons-stars';
 import { SeasonsStarsIntegrationProvider } from './providers/seasons-stars-integration';
-import { SimpleCalendarAPIBridge, Icons } from './api/simple-calendar-api';
+import { SimpleCalendarAPIBridge, Icons, NoteRepeat } from './api/simple-calendar-api';
 import { HookBridge } from './api/hooks';
 import type { CalendarProvider } from './types';
 
@@ -194,6 +194,13 @@ const moduleParseTimeSimpleCalendar = {
     Winter: 'winter',
     Spring: 'spring',
     Summer: 'summer',
+  },
+  // NoteRepeat enum for recurring notes
+  NoteRepeat: {
+    Never: 0,
+    Weekly: 1,
+    Monthly: 2,
+    Yearly: 3,
   },
 };
 
@@ -745,6 +752,7 @@ class SimpleCalendarCompatibilityBridge {
       api: this.api,
       Hooks: this.hookBridge.getHookNames(),
       Icons: Icons,
+      NoteRepeat: NoteRepeat,
     };
 
     // Also expose in globalThis for Simple Weather compatibility
@@ -752,6 +760,7 @@ class SimpleCalendarCompatibilityBridge {
       api: this.api,
       Hooks: this.hookBridge.getHookNames(),
       Icons: Icons,
+      NoteRepeat: NoteRepeat,
     };
 
     console.log('🌉 SimpleCalendar.api exposed:', !!(globalThis as any).SimpleCalendar?.api);

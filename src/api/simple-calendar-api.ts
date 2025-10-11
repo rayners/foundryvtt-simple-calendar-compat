@@ -9,6 +9,9 @@ import type {
   SimpleCalendarMonthData,
   SimpleCalendarWeekdayData,
   SimpleCalendarSeasonData,
+  SimpleCalendarCurrentDate,
+  SimpleCalendarNoteCategory,
+  SimpleCalendarGeneralSettings,
   CalendarDate as BridgeCalendarDate,
   DateChangeEvent,
   CalendarChangeEvent,
@@ -22,6 +25,19 @@ export const Icons = {
   Spring: 'spring',
   Summer: 'summer',
 };
+
+// Simple Calendar NoteRepeat Enum - Required by Item Piles and other modules
+// Matches Simple Calendar's NoteRepeat enum values
+export const NoteRepeat = {
+  /** The note will never repeat */
+  Never: 0,
+  /** The note will repeat every week */
+  Weekly: 1,
+  /** The note will repeat every month on the same days */
+  Monthly: 2,
+  /** The note will repeat every year on the same days */
+  Yearly: 3,
+} as const;
 
 // Import S&S Integration interface types (matching bridge-integration.ts)
 interface SeasonsStarsIntegration {
@@ -701,18 +717,101 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
         return null;
       }
 
+      // Get time configuration from calendar
+      const timeConfig = calendar.time || {
+        hoursInDay: 24,
+        minutesInHour: 60,
+        secondsInMinute: 60,
+      };
+      const secondsPerMinute = timeConfig.secondsInMinute || 60;
+      const minutesPerHour = timeConfig.minutesInHour || 60;
+      const secondsPerHour = secondsPerMinute * minutesPerHour;
+
+      // Get current date from S&S
+      let currentDate: SimpleCalendarCurrentDate | undefined = undefined;
+      try {
+        const ssCurrentDate = this.seasonsStars.api.getCurrentDate();
+        if (ssCurrentDate) {
+          // Convert from S&S format (1-based) to Simple Calendar format (0-based)
+          // Calculate seconds from time using calendar-specific time units
+          const seconds = ssCurrentDate.time
+            ? ssCurrentDate.time.hour * secondsPerHour +
+              ssCurrentDate.time.minute * secondsPerMinute +
+              ssCurrentDate.time.second
+            : 0;
+
+          currentDate = {
+            year: ssCurrentDate.year,
+            month: ssCurrentDate.month - 1, // Convert 1-based to 0-based
+            day: ssCurrentDate.day - 1, // Convert 1-based to 0-based
+            seconds: seconds,
+          };
+        }
+      } catch (err) {
+        console.warn('🌉 Simple Calendar Bridge: Failed to get current date:', err);
+      }
+
+      // Get note categories from Seasons & Stars
+      // Note categories are organizational labels for notes (e.g., "Holiday", "Event", "Reminder")
+      // Used by modules like Item Piles to determine which categories represent closed days
+      let noteCategories: SimpleCalendarNoteCategory[] = [];
+      try {
+        // NOTE: Direct access to game.seasonsStars is intentional here
+        // The noteCategories manager is not yet part of the Integration Interface,
+        // but is a stable public API that we can safely access
+        const categoriesManager = (game as any).seasonsStars?.noteCategories;
+        if (categoriesManager && typeof categoriesManager.getCategories === 'function') {
+          // Get S&S categories and convert to Simple Calendar format
+          // S&S NoteCategory: { id, name, icon, color, description?, isDefault? }
+          // SC NoteCategory: { id, name, color, textColor }
+          const ssCategories = categoriesManager.getCategories();
+          noteCategories = ssCategories.map(
+            (cat: any): SimpleCalendarNoteCategory => ({
+              id: cat.id,
+              name: cat.name,
+              color: cat.color || '#4a90e2',
+              textColor: cat.textColor || '#ffffff',
+            })
+          );
+        }
+      } catch (err) {
+        console.warn('🌉 Simple Calendar Bridge: Failed to get note categories:', err);
+      }
+
+      // Build general settings - Simple Calendar has many settings, we'll provide sensible defaults
+      // Most modules don't use these settings from getCurrentCalendar()
+      const general: SimpleCalendarGeneralSettings = {
+        gameWorldTimeIntegration: 'mixed', // Default to mixed mode
+        showClock: true,
+        noteDefaultVisibility: false,
+        postNoteRemindersOnFoundryLoad: false,
+        pf2eSync: false,
+        dateFormat: {
+          date: 'MMMM DD, YYYY',
+          time: 'HH:mm:ss',
+          monthYear: 'MMMM YAYYYYYZ',
+          chatTime: 'MMMM DD, YYYY HH:mm:ss',
+        },
+        compactViewOptions: {
+          controlLayout: 'full',
+        },
+      };
+
       // Convert to Simple Calendar format
       return {
         id: calendar.id,
         name: calendar.name || calendar.id,
         description: calendar.description || '',
+        currentDate: currentDate,
+        general: general,
         months: calendar.months || [],
         weekdays: calendar.weekdays || [],
         year: calendar.year || { prefix: '', suffix: '', epoch: 0 },
-        time: calendar.time || { hoursInDay: 24, minutesInHour: 60, secondsInMinute: 60 },
+        time: timeConfig,
         seasons: calendar.seasons || [],
         moons: calendar.moons || [],
         leapYear: calendar.leapYear || { rule: 'none' },
+        noteCategories: noteCategories,
       };
     } catch (error) {
       console.error('Failed to get current calendar:', error);
