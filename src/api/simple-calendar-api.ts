@@ -23,6 +23,19 @@ export const Icons = {
   Summer: 'summer',
 };
 
+// Simple Calendar NoteRepeat Enum - Required by Item Piles and other modules
+// Matches Simple Calendar's NoteRepeat enum values
+export const NoteRepeat = {
+  /** The note will never repeat */
+  Never: 0,
+  /** The note will repeat every week */
+  Weekly: 1,
+  /** The note will repeat every month on the same days */
+  Monthly: 2,
+  /** The note will repeat every year on the same days */
+  Yearly: 3,
+} as const;
+
 // Import S&S Integration interface types (matching bridge-integration.ts)
 interface SeasonsStarsIntegration {
   readonly isAvailable: boolean;
