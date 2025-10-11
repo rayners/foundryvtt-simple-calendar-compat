@@ -9,6 +9,9 @@ import type {
   SimpleCalendarMonthData,
   SimpleCalendarWeekdayData,
   SimpleCalendarSeasonData,
+  SimpleCalendarCurrentDate,
+  SimpleCalendarNoteCategory,
+  SimpleCalendarGeneralSettings,
   CalendarDate as BridgeCalendarDate,
   DateChangeEvent,
   CalendarChangeEvent,
@@ -725,7 +728,7 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
       const secondsPerHour = secondsPerMinute * minutesPerHour;
 
       // Get current date from S&S
-      let currentDate: any = undefined;
+      let currentDate: SimpleCalendarCurrentDate | undefined = undefined;
       try {
         const ssCurrentDate = this.seasonsStars.api.getCurrentDate();
         if (ssCurrentDate) {
@@ -751,20 +754,25 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
       // Get note categories from Seasons & Stars
       // Note categories are organizational labels for notes (e.g., "Holiday", "Event", "Reminder")
       // Used by modules like Item Piles to determine which categories represent closed days
-      let noteCategories: any[] = [];
+      let noteCategories: SimpleCalendarNoteCategory[] = [];
       try {
+        // NOTE: Direct access to game.seasonsStars is intentional here
+        // The noteCategories manager is not yet part of the Integration Interface,
+        // but is a stable public API that we can safely access
         const categoriesManager = (game as any).seasonsStars?.noteCategories;
         if (categoriesManager && typeof categoriesManager.getCategories === 'function') {
           // Get S&S categories and convert to Simple Calendar format
           // S&S NoteCategory: { id, name, icon, color, description?, isDefault? }
           // SC NoteCategory: { id, name, color, textColor }
           const ssCategories = categoriesManager.getCategories();
-          noteCategories = ssCategories.map((cat: any) => ({
-            id: cat.id,
-            name: cat.name,
-            color: cat.color || '#4a90e2',
-            textColor: cat.textColor || '#ffffff',
-          }));
+          noteCategories = ssCategories.map(
+            (cat: any): SimpleCalendarNoteCategory => ({
+              id: cat.id,
+              name: cat.name,
+              color: cat.color || '#4a90e2',
+              textColor: cat.textColor || '#ffffff',
+            })
+          );
         }
       } catch (err) {
         console.warn('🌉 Simple Calendar Bridge: Failed to get note categories:', err);
@@ -772,7 +780,7 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
 
       // Build general settings - Simple Calendar has many settings, we'll provide sensible defaults
       // Most modules don't use these settings from getCurrentCalendar()
-      const general: any = {
+      const general: SimpleCalendarGeneralSettings = {
         gameWorldTimeIntegration: 'mixed', // Default to mixed mode
         showClock: true,
         noteDefaultVisibility: false,

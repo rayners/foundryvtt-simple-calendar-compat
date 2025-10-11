@@ -225,7 +225,11 @@ export interface SimpleCalendarCalendarData {
   /** The description of the calendar. */
   description: string;
   /** General settings for the calendar. */
-  general?: any;
+  general?: SimpleCalendarGeneralSettings;
+  /** Current date information. */
+  currentDate?: SimpleCalendarCurrentDate;
+  /** Note categories for organizing calendar notes. */
+  noteCategories?: SimpleCalendarNoteCategory[];
   /** The leap year settings for the calendar. */
   leapYear?: SimpleCalendarLeapYearData;
   /** An array of month settings for each month of the calendar. */
@@ -236,6 +240,69 @@ export interface SimpleCalendarCalendarData {
   time?: SimpleCalendarTimeData;
   /** An array of weekday settings for each weekday of the calendar. */
   weekdays?: SimpleCalendarWeekdayData[];
+}
+
+/**
+ * Interface for current date information
+ * @source Simple Calendar getCurrentCalendar() return type
+ */
+export interface SimpleCalendarCurrentDate {
+  /** The current year. */
+  year: number;
+  /** The current month (0-based). */
+  month: number;
+  /** The current day (0-based). */
+  day: number;
+  /** The current time in seconds since midnight. */
+  seconds: number;
+}
+
+/**
+ * Interface for note categories
+ * @source Simple Calendar note category format
+ */
+export interface SimpleCalendarNoteCategory {
+  /** Unique identifier for the category. */
+  id: string;
+  /** Display name of the category. */
+  name: string;
+  /** Color for the category (hex color code). */
+  color: string;
+  /** Text color for the category (hex color code). */
+  textColor: string;
+}
+
+/**
+ * Interface for general calendar settings
+ * @source Simple Calendar general settings format
+ */
+export interface SimpleCalendarGeneralSettings {
+  /** How the calendar integrates with game world time. */
+  gameWorldTimeIntegration: 'mixed' | 'self' | 'third-party';
+  /** Whether to show the clock. */
+  showClock: boolean;
+  /** Default visibility for new notes. */
+  noteDefaultVisibility: boolean;
+  /** Whether to post note reminders when Foundry loads. */
+  postNoteRemindersOnFoundryLoad: boolean;
+  /** Whether to sync with PF2e world clock. */
+  pf2eSync: boolean;
+  /** Date and time formatting options. */
+  dateFormat: {
+    /** Format string for dates. */
+    date: string;
+    /** Format string for time. */
+    time: string;
+    /** Format string for month and year. */
+    monthYear: string;
+    /** Format string for chat timestamps. */
+    chatTime: string;
+  };
+  /** Compact view display options. */
+  compactViewOptions: {
+    /** Layout of controls in compact view. */
+    controlLayout: 'full' | 'minimal';
+  };
 }
 
 // =============================================================================
