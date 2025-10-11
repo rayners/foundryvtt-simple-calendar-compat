@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Your support helps fund bridge improvements and additional calendar module support!
 
+## [0.3.4](https://github.com/rayners/foundryvtt-simple-calendar-compat/compare/v0.3.3...v0.3.4) (2025-10-11)
+
+
+### Bug Fixes
+
+* add missing properties to getCurrentCalendar() ([#53](https://github.com/rayners/foundryvtt-simple-calendar-compat/issues/53)) ([561b689](https://github.com/rayners/foundryvtt-simple-calendar-compat/commit/561b6892eeb5a4504c5c6d0f5272aa51593c7fcb))
+
 ## [0.3.3](https://github.com/rayners/foundryvtt-simple-calendar-compat/compare/v0.3.2...v0.3.3) (2025-10-07)
 
 
