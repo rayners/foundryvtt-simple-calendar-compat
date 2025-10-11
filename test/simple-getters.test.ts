@@ -476,6 +476,74 @@ describe('Simple Calendar API Bridge - Simple Getters', () => {
       expect(result.noteCategories).toEqual([]);
     });
 
+    it('should calculate seconds correctly with custom time configurations', () => {
+      const mockSeasonsStars = {
+        isAvailable: true,
+        version: '1.0.0',
+        api: {
+          getActiveCalendar: () => ({
+            id: 'custom-time',
+            name: 'Custom Time Calendar',
+            description: 'Fantasy calendar with non-standard time units',
+            time: {
+              hoursInDay: 20,       // 20-hour days
+              minutesInHour: 50,    // 50-minute hours
+              secondsInMinute: 40,  // 40-second minutes
+            },
+          }),
+          getAvailableCalendars: vi.fn(),
+          getCurrentDate: () => ({
+            year: 100,
+            month: 1,
+            day: 1,
+            weekday: 0,
+            time: { hour: 10, minute: 25, second: 30 },
+          }),
+          worldTimeToDate: vi.fn(),
+          dateToWorldTime: vi.fn(),
+          formatDate: vi.fn(),
+          setActiveCalendar: vi.fn(),
+          getMonthNames: vi.fn(),
+          getWeekdayNames: vi.fn(),
+        },
+        widgets: {
+          main: null,
+          mini: null,
+          grid: null,
+          getPreferredWidget: vi.fn(),
+          onWidgetChange: vi.fn(),
+          offWidgetChange: vi.fn(),
+        },
+        hooks: {
+          onDateChanged: vi.fn(),
+          onCalendarChanged: vi.fn(),
+          onReady: vi.fn(),
+          off: vi.fn(),
+        },
+        hasFeature: vi.fn(),
+        getFeatureVersion: vi.fn(),
+      };
+
+      api = new SimpleCalendarAPIBridge(mockSeasonsStars as any);
+      const result = api.getCurrentCalendar();
+
+      // Verify custom time configuration is preserved
+      expect(result.time).toEqual({
+        hoursInDay: 20,
+        minutesInHour: 50,
+        secondsInMinute: 40,
+      });
+
+      // Verify seconds calculation uses custom time units
+      // 10 hours * (50 min/hr * 40 sec/min) = 10 * 2000 = 20000
+      // 25 minutes * 40 sec/min = 1000
+      // 30 seconds = 30
+      // Total = 21030 seconds
+      const expectedSeconds = 10 * (50 * 40) + 25 * 40 + 30;
+      expect(result.currentDate.seconds).toBe(expectedSeconds);
+      expect(result.currentDate.seconds).toBe(21030);
+    });
+
     it('should handle errors gracefully', () => {
       const mockSeasonsStars = {
         isAvailable: true,
