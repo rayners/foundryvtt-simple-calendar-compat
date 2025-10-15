@@ -591,7 +591,7 @@ class SimpleCalendarCompatibilityBridge {
   private provider: CalendarProvider | null = null;
   private api: SimpleCalendarAPIBridge | null = null;
   private hookBridge: HookBridge | null = null;
-  private widgetRenderHandlers: Map<HTMLElement, Function> = new Map();
+  private widgetRenderHandlers: Map<HTMLElement, boolean> = new Map();
 
   /**
    * Initialize the compatibility bridge synchronously for immediate API availability
@@ -892,37 +892,33 @@ class SimpleCalendarCompatibilityBridge {
 
         const $html = $(element);
 
-        // Add Simple Calendar compatibility structure if not present
-        if (!$html.hasClass('simple-calendar-compat')) {
-          this.addSimpleCalendarCompatibility($html);
+        // Check if widget already has compatibility structure
+        // If so, skip to prevent rendering loop (Simple Weather DOM mutations trigger re-renders)
+        if ($html.hasClass('simple-calendar-compat')) {
+          console.log(
+            `🌉 Simple Calendar Compatibility Bridge | Widget ${widgetType} already has compatibility, skipping to prevent render loop`
+          );
+          return;
         }
 
-        // Get or create debounced handler for this widget element
-        // This prevents rapid-fire renderMainApp emissions while still allowing
-        // legitimate calendar updates to trigger Simple Weather refreshes
-        if (!this.widgetRenderHandlers.has(element)) {
-          const debouncedHandler = foundry.utils.debounce(() => {
-            const fakeApp = {
-              constructor: { name: 'SimpleCalendar' },
-              id: 'simple-calendar-app',
-              element: element,
-              rendered: true,
-            };
+        // Add Simple Calendar compatibility structure
+        this.addSimpleCalendarCompatibility($html);
 
-            console.log(
-              `🌉 Simple Calendar Compatibility Bridge | Emitting renderMainApp for ${widgetType} widget (debounced)`
-            );
-            Hooks.callAll('renderMainApp', fakeApp, $html);
-          }, 100); // 100ms debounce prevents rapid-fire loop while allowing legitimate updates
+        // Emit renderMainApp hook for Simple Weather integration
+        const fakeApp = {
+          constructor: { name: 'SimpleCalendar' },
+          id: 'simple-calendar-app',
+          element: element,
+          rendered: true,
+        };
 
-          this.widgetRenderHandlers.set(element, debouncedHandler);
-        }
+        console.log(
+          `🌉 Simple Calendar Compatibility Bridge | Emitting renderMainApp for ${widgetType} widget`
+        );
+        Hooks.callAll('renderMainApp', fakeApp, $html);
 
-        // Call the debounced handler
-        const handler = this.widgetRenderHandlers.get(element);
-        if (handler) {
-          handler();
-        }
+        // Mark this element as handled
+        this.widgetRenderHandlers.set(element, true);
 
         // Note: Sidebar buttons are now handled by S&S's SidebarButtonRegistry
         // No need to manually add them to widgets anymore
