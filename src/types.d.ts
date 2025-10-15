@@ -25,14 +25,17 @@ export interface SimpleCalendarDate {
 /**
  * Type representing a time within Simple Calendar
  * @source Copied from Simple Calendar types/index.d.ts
+ * @note Simple Weather requires 'second' property, Simple Calendar uses 'seconds' - we provide both
  */
 export interface SimpleCalendarTime {
   /** The hour value of the time. */
   hour: number;
   /** The minute value of the time. */
   minute: number;
-  /** The second value of the time. */
+  /** The second value of the time (Simple Calendar format). */
   seconds: number;
+  /** The second value of the time (Simple Weather format) - optional for compatibility. */
+  second?: number;
 }
 
 /**

@@ -82,7 +82,8 @@ describe('Simple Calendar API Bridge - Date Methods', () => {
         day: 14,
         hour: 12,
         minute: 30,
-        seconds: 45,
+        seconds: 45, // Simple Calendar format
+        second: 45,  // Simple Weather format - both must be present
         weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
         dayOfTheWeek: 3,
         display: {
