@@ -86,6 +86,8 @@ describe('Simple Calendar API Bridge - Timestamp Methods', () => {
         weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
         dayOfTheWeek: 3,
         display: {
+          date: 'June 15, 2024', // Simple Weather expects formatted date string
+          time: '12:30',         // Simple Weather expects formatted time string
           monthName: 'June',
           day: '15',
           year: '2024',

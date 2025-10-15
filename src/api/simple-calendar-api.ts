@@ -2115,7 +2115,7 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
       second: secondValue, // Simple Weather expects 'second' - provide both for compatibility
     };
 
-    // Some modules (like SmallTime) expect getCurrentDate to include display data
+    // Some modules (like SmallTime and Simple Weather) expect getCurrentDate to include display data
     // Use S&S formatDate API for robust formatting
     const monthName =
       this.seasonsStars?.api?.formatDate?.(ssDate, { format: '{{month.name}}' }) ||
@@ -2125,11 +2125,21 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
     const weekdayNames = this.seasonsStars?.api?.getWeekdayNames?.() || [];
     const dayOfTheWeek = ssDate.weekday !== undefined ? ssDate.weekday : 0;
 
+    // Format date string for Simple Weather (e.g., "June 15, 2024")
+    const formattedDate = `${monthName} ${ssDate.day}, ${ssDate.year}`;
+
+    // Format time string for Simple Weather (e.g., "12:30")
+    const hour = baseDate.hour;
+    const minute = baseDate.minute.toString().padStart(2, '0');
+    const formattedTime = `${hour}:${minute}`;
+
     return {
       ...baseDate,
       weekdays: weekdayNames,
       dayOfTheWeek: dayOfTheWeek,
       display: {
+        date: formattedDate,
+        time: formattedTime,
         monthName,
         day: ssDate.day.toString(),
         year: ssDate.year.toString(),

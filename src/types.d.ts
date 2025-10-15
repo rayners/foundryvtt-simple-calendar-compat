@@ -44,10 +44,17 @@ export interface SimpleCalendarTime {
  */
 export type SimpleCalendarDateTime = SimpleCalendarDate &
   SimpleCalendarTime & {
-    /** Optional display data for UI formatting (used by some modules like SmallTime) */
+    /** Optional display data for UI formatting (used by some modules like SmallTime and Simple Weather) */
     display?: {
+      /** The formatted date string (e.g., "June 15, 2024") - required by Simple Weather */
+      date?: string;
+      /** The formatted time string (e.g., "12:30 PM") - required by Simple Weather */
+      time?: string;
+      /** The name of the month */
       monthName: string;
+      /** The numerical representation of the day */
       day: string;
+      /** The numerical representation of the year */
       year: string;
     };
     /** Array of weekday names (required by Simple Weather) */
