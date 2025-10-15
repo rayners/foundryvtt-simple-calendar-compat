@@ -891,10 +891,20 @@ class SimpleCalendarCompatibilityBridge {
 
         const $html = $(element);
 
-        // Add Simple Calendar compatibility to this widget
+        // Check if widget already has compatibility structure to prevent render loop
+        // Simple Weather's DOM mutations can trigger S&S re-renders, which would
+        // fire this hook again and create an infinite loop if we don't skip
+        if ($html.hasClass('simple-calendar-compat')) {
+          console.log(
+            `🌉 Simple Calendar Compatibility Bridge | Widget ${widgetType} already has compatibility, skipping to prevent render loop`
+          );
+          return;
+        }
+
+        // Add Simple Calendar compatibility to this widget (first time only)
         this.addSimpleCalendarCompatibility($html);
 
-        // Create fake app and emit hook for this widget
+        // Create fake app and emit hook for this widget (first time only)
         const fakeApp = {
           constructor: { name: 'SimpleCalendar' },
           id: 'simple-calendar-app',
@@ -903,7 +913,7 @@ class SimpleCalendarCompatibilityBridge {
         };
 
         console.log(
-          `🌉 Simple Calendar Compatibility Bridge | Emitting renderMainApp for ${widgetType} widget`
+          `🌉 Simple Calendar Compatibility Bridge | Emitting renderMainApp for ${widgetType} widget (first time)`
         );
         Hooks.callAll('renderMainApp', fakeApp, $html);
 
