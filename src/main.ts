@@ -891,10 +891,33 @@ class SimpleCalendarCompatibilityBridge {
 
         const $html = $(element);
 
-        // Add Simple Calendar compatibility to this widget
+        // KNOWN LIMITATION: Prevents renderMainApp on ALL widget re-renders
+        //
+        // This check prevents an infinite rendering loop caused by Simple Weather:
+        // 1. Bridge emits renderMainApp → Simple Weather attaches weather panel
+        // 2. DOM modification triggers S&S widget re-render
+        // 3. S&S fires seasons-stars:renderCalendarWidget again
+        // 4. Without this check, bridge would emit renderMainApp again → loop continues
+        //
+        // Trade-off: This also prevents renderMainApp from firing on legitimate calendar
+        // updates (e.g., time advances). Simple Weather and other modules relying on
+        // renderMainApp for state updates will only be notified on initial widget creation,
+        // not on subsequent calendar state changes.
+        //
+        // This is an acceptable compromise to prevent the infinite loop, but modules may
+        // need to listen to other hooks (e.g., simple-calendar-date-time-change) for
+        // calendar updates after initial attachment.
+        if ($html.hasClass('simple-calendar-compat')) {
+          console.log(
+            `🌉 Simple Calendar Compatibility Bridge | Widget ${widgetType} already has compatibility, skipping to prevent render loop`
+          );
+          return;
+        }
+
+        // Add Simple Calendar compatibility structure
         this.addSimpleCalendarCompatibility($html);
 
-        // Create fake app and emit hook for this widget
+        // Emit renderMainApp hook for Simple Weather integration
         const fakeApp = {
           constructor: { name: 'SimpleCalendar' },
           id: 'simple-calendar-app',
