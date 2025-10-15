@@ -591,7 +591,6 @@ class SimpleCalendarCompatibilityBridge {
   private provider: CalendarProvider | null = null;
   private api: SimpleCalendarAPIBridge | null = null;
   private hookBridge: HookBridge | null = null;
-  private widgetRenderHandlers: Map<HTMLElement, boolean> = new Map();
 
   /**
    * Initialize the compatibility bridge synchronously for immediate API availability
@@ -892,8 +891,22 @@ class SimpleCalendarCompatibilityBridge {
 
         const $html = $(element);
 
-        // Check if widget already has compatibility structure
-        // If so, skip to prevent rendering loop (Simple Weather DOM mutations trigger re-renders)
+        // KNOWN LIMITATION: Prevents renderMainApp on ALL widget re-renders
+        //
+        // This check prevents an infinite rendering loop caused by Simple Weather:
+        // 1. Bridge emits renderMainApp → Simple Weather attaches weather panel
+        // 2. DOM modification triggers S&S widget re-render
+        // 3. S&S fires seasons-stars:renderCalendarWidget again
+        // 4. Without this check, bridge would emit renderMainApp again → loop continues
+        //
+        // Trade-off: This also prevents renderMainApp from firing on legitimate calendar
+        // updates (e.g., time advances). Simple Weather and other modules relying on
+        // renderMainApp for state updates will only be notified on initial widget creation,
+        // not on subsequent calendar state changes.
+        //
+        // This is an acceptable compromise to prevent the infinite loop, but modules may
+        // need to listen to other hooks (e.g., simple-calendar-date-time-change) for
+        // calendar updates after initial attachment.
         if ($html.hasClass('simple-calendar-compat')) {
           console.log(
             `🌉 Simple Calendar Compatibility Bridge | Widget ${widgetType} already has compatibility, skipping to prevent render loop`
@@ -916,9 +929,6 @@ class SimpleCalendarCompatibilityBridge {
           `🌉 Simple Calendar Compatibility Bridge | Emitting renderMainApp for ${widgetType} widget`
         );
         Hooks.callAll('renderMainApp', fakeApp, $html);
-
-        // Mark this element as handled
-        this.widgetRenderHandlers.set(element, true);
 
         // Note: Sidebar buttons are now handled by S&S's SidebarButtonRegistry
         // No need to manually add them to widgets anymore
@@ -1200,9 +1210,6 @@ class SimpleCalendarCompatibilityBridge {
     if ((game as any).simpleCalendarCompat) {
       delete (game as any).simpleCalendarCompat;
     }
-
-    // Clean up widget render handlers
-    this.widgetRenderHandlers.clear();
 
     // Clean up DOM observer
     if ((this as any).domObserver) {
