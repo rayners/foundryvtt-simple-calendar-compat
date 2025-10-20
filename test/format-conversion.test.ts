@@ -110,7 +110,8 @@ describe('Format Conversion Helpers', () => {
         day: 14, // 14 (0-based) - converted from 15
         hour: 12,
         minute: 30,
-        seconds: 45, // Note: 'seconds' not 'second'
+        seconds: 45, // Simple Calendar format
+        second: 45,  // Simple Weather format - both must be present
       });
     });
 
