@@ -5,7 +5,12 @@
  * without direct DOM manipulation or legacy API dependencies.
  */
 
-import type { CalendarProvider, CalendarDate } from '../types';
+import type {
+  CalendarProvider,
+  CalendarDate,
+  DateChangeEvent,
+  CalendarChangeEvent,
+} from '../types';
 
 // Integration types (matching S&S interface design)
 interface SeasonsStarsIntegration {
@@ -44,6 +49,7 @@ interface SeasonsStarsWidgets {
   getPreferredWidget(preference?: WidgetPreference): BridgeCalendarWidget | null;
   onWidgetChange(callback: (widgets: SeasonsStarsWidgets) => void): void;
   offWidgetChange(callback: (widgets: SeasonsStarsWidgets) => void): void;
+  wrapWidget?: any; // Allow dynamic widget wrapping for compatibility
 }
 
 interface BridgeCalendarWidget {
@@ -61,19 +67,6 @@ interface SeasonsStarsHooks {
   onCalendarChanged(callback: (event: CalendarChangeEvent) => void): void;
   onReady(callback: (event: ReadyEvent) => void): void;
   off(hookName: string, callback: Function): void;
-}
-
-interface DateChangeEvent {
-  newDate: CalendarDate;
-  oldDate: CalendarDate;
-  worldTime: number;
-  calendarId: string;
-}
-
-interface CalendarChangeEvent {
-  newCalendarId: string;
-  oldCalendarId: string;
-  calendar: any;
 }
 
 interface ReadyEvent {
@@ -97,9 +90,13 @@ export class SeasonsStarsIntegrationProvider implements CalendarProvider {
   readonly version: string;
 
   private integration: SeasonsStarsIntegration | null = null;
-  private dateChangeCallback?: Function;
-  private calendarChangeCallback?: Function;
-  private widgetChangeCallback?: Function;
+  private dateChangeCallback?: (event: DateChangeEvent) => void;
+  private calendarChangeCallback?: (event: CalendarChangeEvent) => void;
+  private widgetChangeCallback?: (widgets: SeasonsStarsWidgets) => void;
+
+  // Compatibility methods for bridge functionality
+  hasFeature?: any;
+  wrapWidget?: any;
 
   constructor() {
     this.integration = this.detectIntegration();
@@ -123,8 +120,8 @@ export class SeasonsStarsIntegrationProvider implements CalendarProvider {
       }
 
       // Try static detection method
-      if ((window as any).SeasonsStars?.integration?.detect) {
-        const detected = (window as any).SeasonsStars.integration.detect();
+      if (game.seasonsStars?.integration?.detect) {
+        const detected = game.seasonsStars.integration.detect();
         if (detected && detected.isAvailable) {
           console.log('Bridge: Detected S&S integration v' + detected.version);
           return detected;
@@ -149,7 +146,6 @@ export class SeasonsStarsIntegrationProvider implements CalendarProvider {
    */
   private createLegacyIntegrationWrapper(): SeasonsStarsIntegration {
     const api = (game as any).seasonsStars.api;
-    const manager = (game as any).seasonsStars.manager;
 
     return {
       isAvailable: true,
@@ -211,7 +207,7 @@ export class SeasonsStarsIntegrationProvider implements CalendarProvider {
       offWidgetChange: () => {},
 
       wrapWidget(widgetClassName: string): BridgeCalendarWidget | null {
-        const widgetClass = (window as any).SeasonsStars?.[widgetClassName];
+        const widgetClass = game.seasonsStars?.manager?.widgets?.[widgetClassName];
         const instance = widgetClass?.getInstance?.();
 
         if (!instance) return null;
@@ -270,7 +266,7 @@ export class SeasonsStarsIntegrationProvider implements CalendarProvider {
     const widgets = ['CalendarWidget', 'CalendarMiniWidget', 'CalendarGridWidget'];
 
     for (const widgetName of widgets) {
-      const widgetClass = (window as any).SeasonsStars?.[widgetName];
+      const widgetClass = game.seasonsStars?.manager?.widgets?.[widgetName];
       const instance = widgetClass?.getInstance?.();
 
       if (instance && typeof instance.addSidebarButton === 'function') {
@@ -328,11 +324,11 @@ export class SeasonsStarsIntegrationProvider implements CalendarProvider {
       return false;
     }
 
-    // Check for either new integration or legacy API
-    const hasIntegration = !!(game as any).seasonsStars?.integration?.isAvailable;
-    const hasLegacyAPI = !!(game as any).seasonsStars?.api;
+    // Check for current S&S API
+    const hasIntegration = !!game.seasonsStars?.integration?.isAvailable;
+    const hasAPI = !!game.seasonsStars?.api;
 
-    return hasIntegration || hasLegacyAPI;
+    return hasIntegration || hasAPI;
   }
 
   /**

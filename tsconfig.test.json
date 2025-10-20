@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node", "jquery"],
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "module": "ESNext",
+    "target": "ES2020",
+    "rootDir": "."
+  },
+  "include": ["test/**/*", "src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

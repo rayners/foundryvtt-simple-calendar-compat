@@ -17,10 +17,10 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Bundle Analysis
-        uses: rayners/foundry-module-actions/bundle-analysis@v1
+        uses: rayners/foundry-module-actions/bundle-analysis@v5
         with:
           node-version: '18'
           github-packages: false

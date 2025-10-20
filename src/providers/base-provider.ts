@@ -51,15 +51,15 @@ export abstract class BaseCalendarProvider implements CalendarProvider {
   }
 
   // Optional GM methods - default to no-op
-  async advanceDays(days: number): Promise<void> {
+  async advanceDays(_days: number): Promise<void> {
     console.warn(`${this.name} provider does not support time advancement`);
   }
 
-  async advanceHours(hours: number): Promise<void> {
+  async advanceHours(_hours: number): Promise<void> {
     console.warn(`${this.name} provider does not support time advancement`);
   }
 
-  async advanceMinutes(minutes: number): Promise<void> {
+  async advanceMinutes(_minutes: number): Promise<void> {
     console.warn(`${this.name} provider does not support time advancement`);
   }
 

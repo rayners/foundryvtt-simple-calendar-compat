@@ -30,8 +30,10 @@ describe('Weekday Conversion Logic', () => {
       }
 
       // Test invalid weekdays
-      expect(-1 >= 0 && -1 < weekdayNames.length).toBe(false);
-      expect(7 >= 0 && 7 < weekdayNames.length).toBe(false);
+      const invalidWeekday1 = -1;
+      const invalidWeekday2 = 7;
+      expect(invalidWeekday1 >= 0 && invalidWeekday1 < weekdayNames.length).toBe(false);
+      expect(invalidWeekday2 >= 0 && invalidWeekday2 < weekdayNames.length).toBe(false);
     });
 
     it('should access weekday names without conversion', () => {

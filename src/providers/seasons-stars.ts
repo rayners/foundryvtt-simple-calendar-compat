@@ -22,7 +22,7 @@ export class SeasonsStarsProvider extends BaseCalendarProvider {
     console.log('  - module:', module);
     console.log('  - module.active:', module?.active);
     console.log('  - game.seasonsStars:', game.seasonsStars);
-    console.log('  - game.seasonsStars.api:', api);
+    console.log('  - api found:', !!api);
 
     return !!(module?.active && api);
   }
@@ -58,11 +58,11 @@ export class SeasonsStarsProvider extends BaseCalendarProvider {
     } catch (error) {
       console.warn('Failed to convert timestamp to date:', error);
       // Fallback to basic conversion
-      const days = Math.floor(timestamp / 86400);
+      const _days = Math.floor(timestamp / 86400);
       return {
         year: 2023,
         month: 1,
-        day: days + 1,
+        day: _days + 1,
         weekday: 0,
         time: {
           hour: Math.floor((timestamp % 86400) / 3600),

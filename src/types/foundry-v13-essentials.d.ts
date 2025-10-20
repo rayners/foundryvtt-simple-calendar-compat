@@ -17,6 +17,7 @@ declare global {
   const Hooks: typeof HooksManager;
   const CONFIG: Config;
   const JournalEntry: JournalEntryStatic;
+  const Folder: FolderStatic;
   const CONST: {
     DOCUMENT_OWNERSHIP_LEVELS: {
       NONE: number;
@@ -43,14 +44,17 @@ interface Game {
   time: GameTime;
   i18n: Localization;
   journal: Collection<JournalEntry>;
+  folders: Collection<any>;
 
   // Simple Calendar API exposure point
   simpleCalendar?: any;
 
   // Seasons & Stars integration point
   seasonsStars?: {
+    api?: any;
     manager?: any;
     integration?: any;
+    [key: string]: any; // Allow additional properties for compatibility
   };
 }
 
@@ -65,16 +69,22 @@ interface Localization {
   format(key: string, data?: Record<string, unknown>): string;
 }
 
+interface ClientSettingsStorage {
+  get(scope: string): unknown;
+}
+
 interface ClientSettings {
   get(module: string, setting: string): any;
   set(module: string, setting: string, value: any): Promise<any>;
   register(module: string, setting: string, config: any): void;
+  storage?: ClientSettingsStorage;
 }
 
 interface User {
   id: string;
   name: string;
   isGM: boolean;
+  active: boolean;
 }
 
 interface Module {
@@ -106,6 +116,7 @@ interface Config {
 // HOOKS SYSTEM
 // =============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare class HooksManager {
   static on(hook: string, callback: Function): number;
   static once(hook: string, callback: Function): number;
@@ -138,6 +149,10 @@ interface JournalEntryStatic {
   create(data: any): Promise<JournalEntry>;
 }
 
+interface FolderStatic {
+  create(data: any): Promise<any>;
+}
+
 interface JournalEntryPage {
   id: string;
   name: string;
@@ -162,201 +177,30 @@ declare global {
 // SIMPLE CALENDAR COMPATIBILITY TYPES
 // =============================================================================
 
-/**
- * Simple Calendar API interface for compatibility
- * These types match what modules expect from Simple Calendar
- */
-interface SimpleCalendarAPI {
-  timestampToDate(timestamp: number): SimpleCalendarDate;
-  dateToTimestamp(date: SimpleCalendarDateInput): number;
-  getCurrentDate(): SimpleCalendarDate;
-  setCurrentDate(date: SimpleCalendarDateInput): Promise<boolean>;
-  advanceTimeToPreset(preset: string): Promise<void>;
+// SimpleCalendarAPI interface is defined in ../types.d.ts to avoid duplication
 
-  // Configuration access
-  getCalendars(): SimpleCalendarConfiguration[];
-  getCurrentCalendar(): SimpleCalendarConfiguration | null;
+// SimpleCalendarDate, SimpleCalendarDateInput, and SimpleCalendarConfiguration
+// interfaces are defined in ../types.d.ts to avoid duplication
 
-  // Hook integration
-  Hooks: {
-    on: (hook: string, callback: Function) => number;
-    off: (hook: string, id: number) => void;
-  };
-}
-
-interface SimpleCalendarDate {
-  year: number;
-  month: number; // 0-based for compatibility
-  day: number; // 0-based for compatibility
-  hour: number;
-  minute: number;
-  second: number;
-  dayOffset?: number; // Additional offset for compatibility
-
-  // Display formatting (critical for module integration)
-  display: {
-    monthName: string; // Full month name
-    month: string; // Month number as string
-    day: string; // Day number as string
-    year: string; // Year as string
-    daySuffix: string; // Ordinal suffix (1st, 2nd, 3rd)
-    yearPrefix: string; // Year prefix from calendar
-    yearPostfix: string; // Year suffix from calendar
-    date: string; // Full formatted date
-    time: string; // Formatted time
-    weekday: string; // Weekday name
-  };
-
-  // Additional data for compatibility
-  sunrise: number;
-  sunset: number;
-  weekdays: string[];
-  currentSeason?: {
-    name: string;
-    color: string;
-    icon: string;
-  };
-}
-
-interface SimpleCalendarDateInput {
-  year?: number;
-  month?: number;
-  day?: number;
-  hour?: number;
-  minute?: number;
-  second?: number;
-}
-
-interface SimpleCalendarConfiguration {
-  id: string;
-  name: string;
-  months: SimpleCalendarMonth[];
-  weekdays: SimpleCalendarWeekday[];
-  year: {
-    prefix: string;
-    suffix: string;
-    yearZero: number;
-  };
-  seasons?: SimpleCalendarSeason[];
-}
-
-interface SimpleCalendarMonth {
-  id: string;
-  name: string;
-  length: number;
-  isLeapMonth?: boolean;
-}
-
-interface SimpleCalendarWeekday {
-  id: string;
-  name: string;
-  abbreviation: string;
-}
-
-interface SimpleCalendarSeason {
-  id: string;
-  name: string;
-  color: string;
-  icon: string;
-  startMonth: number;
-  startDay: number;
-}
+// SimpleCalendarMonth, SimpleCalendarWeekday, and SimpleCalendarSeason
+// interfaces are defined in ../types.d.ts to avoid duplication
 
 // =============================================================================
 // SEASONS & STARS INTEGRATION TYPES
 // =============================================================================
 
-/**
- * Seasons & Stars integration interface
- * These types define how the bridge connects to S&S
- */
-interface SeasonsStarsIntegration {
-  detect(): SeasonsStarsIntegration | null;
-  hasFeature(feature: string): boolean;
-  getFeatureVersion(feature: string): string | null;
+// SeasonsStarsIntegration interface is defined in ../types.d.ts to avoid duplication
 
-  // API access
-  readonly api: SeasonsStarsAPI;
-  readonly widgets: SeasonsStarsWidgets;
-  readonly hooks: SeasonsStarsHooks;
-}
+// SeasonsStarsAPI, SeasonsStarsWidgets, and SeasonsStarsHooks
+// interfaces are defined in ../types.d.ts to avoid duplication
 
-interface SeasonsStarsAPI {
-  getCurrentDate(): SeasonsStarsDate;
-  setCurrentDate(date: SeasonsStarsDateInput): Promise<boolean>;
-  advanceTime(amount: number, unit: string): Promise<void>;
-  getActiveCalendar(): SeasonsStarsCalendar | null;
-  getAvailableCalendars(): SeasonsStarsCalendar[];
-  setActiveCalendar(calendarId: string): Promise<boolean>;
-}
+// SeasonsStarsDate and SeasonsStarsDateInput interfaces are defined
+// in ../types.d.ts to avoid duplication
 
-interface SeasonsStarsWidgets {
-  getCalendarWidget(): any;
-  getMiniWidget(): any;
-  isCalendarWidgetOpen(): boolean;
-  isMiniWidgetOpen(): boolean;
-  toggleCalendarWidget(): Promise<void>;
-  addSidebarButton(config: any): void;
-}
+// SeasonsStarsCalendar interface is defined in ../types.d.ts to avoid duplication
 
-interface SeasonsStarsHooks {
-  onDateChanged(callback: (date: SeasonsStarsDate) => void): number;
-  onCalendarChanged(callback: (calendar: SeasonsStarsCalendar) => void): number;
-  offHook(hookId: number): void;
-}
-
-interface SeasonsStarsDate {
-  year: number;
-  month: number; // 1-based in S&S
-  day: number; // 1-based in S&S
-  hour: number;
-  minute: number;
-  second: number;
-}
-
-interface SeasonsStarsDateInput {
-  year?: number;
-  month?: number;
-  day?: number;
-  hour?: number;
-  minute?: number;
-  second?: number;
-}
-
-interface SeasonsStarsCalendar {
-  id: string;
-  name: string;
-  description?: string;
-  months: SeasonsStarsMonth[];
-  weekdays: SeasonsStarsWeekday[];
-  year: {
-    prefix?: string;
-    suffix?: string;
-    yearZero?: number;
-  };
-  seasons?: SeasonsStarsSeason[];
-}
-
-interface SeasonsStarsMonth {
-  name: string;
-  length: number;
-  isLeapMonth?: boolean;
-}
-
-interface SeasonsStarsWeekday {
-  name: string;
-  abbreviation?: string;
-}
-
-interface SeasonsStarsSeason {
-  name: string;
-  color?: string;
-  icon?: string;
-  startMonth: number;
-  startDay: number;
-  endMonth?: number;
-  endDay?: number;
-}
+// SeasonsStarsMonth, SeasonsStarsWeekday, and SeasonsStarsSeason interfaces
+// are defined in ../types.d.ts to avoid duplication
 
 // =============================================================================
 // UTILITY TYPES
@@ -377,30 +221,7 @@ declare class Collection<T> extends Map<string, T> {
 // PROVIDER INTERFACES
 // =============================================================================
 
-/**
- * Base provider interface for calendar integrations
- */
-interface CalendarProvider {
-  readonly name: string;
-  readonly version: string;
-
-  isAvailable(): boolean;
-  initialize(): Promise<void>;
-
-  // Date operations
-  getCurrentDate(): SimpleCalendarDate;
-  setCurrentDate(date: SimpleCalendarDateInput): Promise<boolean>;
-  timestampToDate(timestamp: number): SimpleCalendarDate;
-  dateToTimestamp(date: SimpleCalendarDateInput): number;
-
-  // Calendar operations
-  getActiveCalendar(): SimpleCalendarConfiguration | null;
-  getAvailableCalendars(): SimpleCalendarConfiguration[];
-
-  // Event handling
-  onDateChanged(callback: (date: SimpleCalendarDate) => void): void;
-  onCalendarChanged(callback: (calendar: SimpleCalendarConfiguration) => void): void;
-}
+// CalendarProvider interface is defined in ../types.d.ts to avoid duplication
 
 // =============================================================================
 // MODULE DECLARATION

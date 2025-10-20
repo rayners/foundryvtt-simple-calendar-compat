@@ -2,7 +2,7 @@
   "id": "foundryvtt-simple-calendar-compat",
   "title": "Simple Calendar Compatibility Bridge",
   "description": "Provides 100% Simple Calendar API compatibility with complete separation of concerns. Bridges modern calendar modules (Seasons & Stars) to Simple Calendar-dependent modules. Features complete Simple Weather support including weather persistence, SmallTime integration, and automatic format conversions.",
-  "version": "0.1.2",
+  "version": "0.4.0",
   "authors": [
     {
       "name": "David Raynes",
@@ -36,7 +36,10 @@
       {
         "id": "seasons-and-stars",
         "type": "module",
-        "reason": "Primary calendar provider for compatibility bridging"
+        "compatibility": {
+          "minimum": "0.19.0"
+        },
+        "reason": "Primary calendar provider for compatibility bridging. Requires v0.19.0+ for sidebar button management."
       }
     ],
     "conflicts": [
