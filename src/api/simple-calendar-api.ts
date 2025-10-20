@@ -297,13 +297,15 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
    * Convert S&S CalendarDate format to Simple Calendar format
    */
   private convertSSToSCFormat(ssDate: BridgeCalendarDate): SimpleCalendarDateTime {
+    const secondValue = ssDate.time?.second || 0;
     return {
       year: ssDate.year,
       month: ssDate.month - 1, // Convert 1-based to 0-based for SC compatibility
       day: ssDate.day - 1, // Convert 1-based to 0-based for SC compatibility
       hour: ssDate.time?.hour || 0,
       minute: ssDate.time?.minute || 0,
-      seconds: ssDate.time?.second || 0, // Note: 'seconds' not 'second'
+      seconds: secondValue, // Simple Calendar expects 'seconds'
+      second: secondValue, // Simple Weather expects 'second' - provide both for compatibility
     };
   }
 
@@ -2101,16 +2103,19 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
    * @source Returns exact format expected by Simple Calendar modules
    */
   private convertSSToSCDateTime(ssDate: CalendarDate): SimpleCalendarDateTime {
+    const secondValue = ssDate.time?.second || 0;
+
     const baseDate = {
       year: ssDate.year,
       month: ssDate.month - 1, // Convert from 1-based to 0-based
       day: ssDate.day - 1, // Convert from 1-based to 0-based
       hour: ssDate.time?.hour || 0,
       minute: ssDate.time?.minute || 0,
-      seconds: ssDate.time?.second || 0, // Note: 'seconds' not 'second'
+      seconds: secondValue, // Simple Calendar expects 'seconds'
+      second: secondValue, // Simple Weather expects 'second' - provide both for compatibility
     };
 
-    // Some modules (like SmallTime) expect getCurrentDate to include display data
+    // Some modules (like SmallTime and Simple Weather) expect getCurrentDate to include display data
     // Use S&S formatDate API for robust formatting
     const monthName =
       this.seasonsStars?.api?.formatDate?.(ssDate, { format: '{{month.name}}' }) ||
@@ -2120,11 +2125,21 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
     const weekdayNames = this.seasonsStars?.api?.getWeekdayNames?.() || [];
     const dayOfTheWeek = ssDate.weekday !== undefined ? ssDate.weekday : 0;
 
+    // Format date string for Simple Weather (e.g., "June 15, 2024")
+    const formattedDate = `${monthName} ${ssDate.day}, ${ssDate.year}`;
+
+    // Format time string for Simple Weather (e.g., "12:30")
+    const hour = baseDate.hour;
+    const minute = baseDate.minute.toString().padStart(2, '0');
+    const formattedTime = `${hour}:${minute}`;
+
     return {
       ...baseDate,
       weekdays: weekdayNames,
       dayOfTheWeek: dayOfTheWeek,
       display: {
+        date: formattedDate,
+        time: formattedTime,
         monthName,
         day: ssDate.day.toString(),
         year: ssDate.year.toString(),

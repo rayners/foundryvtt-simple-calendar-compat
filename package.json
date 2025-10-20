@@ -1,6 +1,6 @@
 {
   "name": "foundryvtt-simple-calendar-compat",
-  "version": "0.3.4",
+  "version": "0.4.0",
   "description": "Simple Calendar API compatibility bridge for modern calendar modules",
   "type": "module",
   "main": "dist/main.js",
@@ -50,7 +50,7 @@
     "eslint": "^9.35.0",
     "husky": "^9.1.7",
     "jsdom": "^26.1.0",
-    "lint-staged": "^16.1.6",
+    "lint-staged": "^16.2.4",
     "prettier": "^3.5.3",
     "rimraf": "^6.0.1",
     "rollup": "^4.52.4",
