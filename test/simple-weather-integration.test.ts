@@ -110,6 +110,45 @@ describe('Simple Weather Integration', () => {
       expect(mockApi.getCurrentDate).toHaveBeenCalled();
     });
 
+    it('should provide both "second" and "seconds" properties for compatibility', () => {
+      // This tests the bug fix for Simple Weather's isDateTimeValid() check
+      // Simple Weather expects 'second' but Simple Calendar uses 'seconds'
+      const mockApi = {
+        timestampToDate: vi.fn((timestamp: number) => ({
+          year: 2024,
+          month: 1,
+          day: 15,
+          hour: 12,
+          minute: 30,
+          second: 45,   // Simple Weather requires this property
+          seconds: 45,  // Simple Calendar uses this property
+        })),
+      };
+
+      (globalThis as any).SimpleCalendar = { api: mockApi };
+
+      const date = (globalThis as any).SimpleCalendar.api.timestampToDate(12345);
+
+      // Verify both properties exist
+      expect(date.second).toBe(45);
+      expect(date.seconds).toBe(45);
+
+      // Verify Simple Weather's isDateTimeValid() would pass
+      // It checks: second, minute, day, month, year are all defined
+      expect(date.second).toBeDefined();
+      expect(date.minute).toBeDefined();
+      expect(date.day).toBeDefined();
+      expect(date.month).toBeDefined();
+      expect(date.year).toBeDefined();
+
+      // All should be non-null numbers
+      expect(typeof date.second).toBe('number');
+      expect(typeof date.minute).toBe('number');
+      expect(typeof date.day).toBe('number');
+      expect(typeof date.month).toBe('number');
+      expect(typeof date.year).toBe('number');
+    });
+
     it('should provide timestampToDate method', () => {
       const mockApi = {
         timestampToDate: vi.fn((timestamp: number) => ({
