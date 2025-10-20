@@ -5,7 +5,7 @@
 
 import { SeasonsStarsProvider } from './providers/seasons-stars';
 import { SeasonsStarsIntegrationProvider } from './providers/seasons-stars-integration';
-import { SimpleCalendarAPIBridge, Icons } from './api/simple-calendar-api';
+import { SimpleCalendarAPIBridge, Icons, NoteRepeat } from './api/simple-calendar-api';
 import { HookBridge } from './api/hooks';
 import type { CalendarProvider } from './types';
 
@@ -195,6 +195,13 @@ const moduleParseTimeSimpleCalendar = {
     Spring: 'spring',
     Summer: 'summer',
   },
+  // NoteRepeat enum for recurring notes
+  NoteRepeat: {
+    Never: 0,
+    Weekly: 1,
+    Monthly: 2,
+    Yearly: 3,
+  },
 };
 
 // Expose globally immediately - this happens when the module script is parsed
@@ -232,53 +239,140 @@ console.log(
   '🌉 Simple Calendar Compatibility Bridge | Diagnostic function available: debugSimpleCalendarBridge()'
 );
 
-// Add minimal CSS classes that Simple Weather expects for attached mode
+// Add CSS classes that Simple Weather expects for attached mode
 const compatCSS = `
-  /* Minimal Simple Calendar compatibility classes for Simple Weather attached mode */
+  /* Simple Calendar compatibility classes for Simple Weather attached mode */
+
+  /* Tab wrapper - container for tab panels */
   .fsc-of {
-    /* Tab wrapper - basic flex container */
-    display: flex;
-    flex-direction: column;
+    display: block;
     position: relative;
+    width: 100%;
   }
-  
+
+  /* Tab extended/open state - visible */
   .fsc-c {
-    /* Tab extended/open state - visible */
     display: block;
   }
-  
+
+  /* Tab closed state - hidden */
   .fsc-d {
-    /* Tab closed state - hidden */
-    display: none;
+    display: none !important;
   }
-  
+
+  /* Right-aligned positioning for weather panel */
   .sc-right {
-    /* Right-aligned positioning - only within attached mode */
     margin-left: auto;
   }
-  
+
+  /* Simple Weather attached container */
   #swr-fsc-container {
-    /* Simple Weather attached container */
     position: relative;
     z-index: 100;
-    max-width: 300px;
-    margin-top: 8px;
+    width: auto !important;
+    flex-shrink: 0;
+    margin: 0 !important;
+    padding: 0 !important;
   }
-  
-  /* Only apply these styles when Simple Weather is in attached mode */
+
+  /* Simple Weather main container when attached to calendar */
   #swr-fsc-container #swr-container {
-    /* Simple Weather main container when attached */
     position: relative !important;
-    background: var(--color-bg);
-    border: 1px solid var(--color-border-dark);
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-sizing: border-box;
   }
-  
-  /* Ensure non-attached mode isn't affected by our CSS */
-  #swr-container:not(#swr-fsc-container #swr-container) {
-    /* Reset any unwanted styling for non-attached mode */
-    margin-left: unset !important;
+
+  /* Weather wrapper - let it size naturally */
+  #swr-fsc-container #swr-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* Calendar and weather boxes - let them use their natural widths */
+  #swr-fsc-container #swr-calendar-box,
+  #swr-fsc-container #swr-weather-box {
+    box-sizing: border-box;
+  }
+
+  /* Adjust mini widget to expand for sidebar buttons */
+  /* S&S sets inline width:200px, but sidebar buttons need more space */
+  #fsc-if.calendar-mini-widget {
+    min-width: 230px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  /* Keep the calendar part at its normal width and proper layout */
+  #fsc-if.calendar-mini-widget > .window-content > .calendar-mini-content {
+    flex-shrink: 0;
+    width: auto;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Don't override S&S's mini widget footer layout - it handles sidebar buttons natively */
+  /* Just ensure nowrap is set to prevent wrapping and container expands */
+  #fsc-if.calendar-mini-widget .mini-footer-row {
+    flex-wrap: nowrap;
+    width: auto;
+    min-width: 100%;
+  }
+
+  /* Grid widget should maintain its size but accommodate weather */
+  #fsc-if.calendar-grid-widget #swr-fsc-container {
+    max-width: 100%;
+  }
+
+  /* Weather display elements should wrap properly */
+  #swr-fsc-container #swr-date-display,
+  #swr-fsc-container #swr-time-display {
+    font-size: 0.9em;
+    text-align: center;
+  }
+
+  #swr-fsc-container .swr-top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px;
+  }
+
+  /* Ensure window-content has proper layout - row for side-by-side */
+  #fsc-if .window-content {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  /* Grid widget needs to expand to fit both calendar and weather */
+  #fsc-if.calendar-grid-widget {
+    width: auto !important;
+    min-width: 400px;
+  }
+
+  /* Keep calendar grid at its natural size */
+  #fsc-if.calendar-grid-widget .calendar-grid-content {
+    flex-shrink: 0;
+    width: auto;
+  }
+
+  /* Stack vertically on very narrow screens */
+  @media (max-width: 600px) {
+    #fsc-if .window-content {
+      flex-direction: column;
+    }
+  }
+
+  /* Hide the dummy panel used for positioning */
+  #sc-compat-dummy-panel {
+    display: none !important;
   }
 `;
 
@@ -501,8 +595,10 @@ class SimpleCalendarCompatibilityBridge {
   /**
    * Initialize the compatibility bridge synchronously for immediate API availability
    * Critical for ensuring API is ready when Item Piles ready hook fires
+   *
+   * @param skipInitHook - If true, don't fire the simple-calendar-init hook (caller will fire it later)
    */
-  initializeSync(): void {
+  initializeSync(skipInitHook: boolean = false): void {
     console.log('🌉 Simple Calendar Compatibility Bridge | Initializing synchronously...');
 
     // Check if Simple Calendar is already active (but not our fake module)
@@ -539,8 +635,8 @@ class SimpleCalendarCompatibilityBridge {
     // Expose Simple Calendar API synchronously
     this.exposeSimpleCalendarAPI();
 
-    // Initialize hook bridging synchronously
-    this.hookBridge.initialize();
+    // Initialize hook bridging synchronously, optionally skipping Init hook
+    this.hookBridge.initialize(skipInitHook);
 
     // Set up integration with Seasons & Stars widgets
     this.setupWidgetIntegration();
@@ -656,6 +752,7 @@ class SimpleCalendarCompatibilityBridge {
       api: this.api,
       Hooks: this.hookBridge.getHookNames(),
       Icons: Icons,
+      NoteRepeat: NoteRepeat,
     };
 
     // Also expose in globalThis for Simple Weather compatibility
@@ -663,6 +760,7 @@ class SimpleCalendarCompatibilityBridge {
       api: this.api,
       Hooks: this.hookBridge.getHookNames(),
       Icons: Icons,
+      NoteRepeat: NoteRepeat,
     };
 
     console.log('🌉 SimpleCalendar.api exposed:', !!(globalThis as any).SimpleCalendar?.api);
@@ -783,133 +881,36 @@ class SimpleCalendarCompatibilityBridge {
   public setupWidgetIntegration(): void {
     console.log('🌉 Simple Calendar Compatibility Bridge | Setting up widget integration');
 
-    // Immediately check for existing widgets
-    this.integrateWithSeasonsStarsWidgets();
+    // Listen for Seasons & Stars native widget render hook
+    Hooks.on(
+      'seasons-stars:renderCalendarWidget',
+      (widget: any, element: HTMLElement, widgetType: string) => {
+        console.log(
+          `🌉 Simple Calendar Compatibility Bridge | seasons-stars:renderCalendarWidget fired for ${widgetType} widget`
+        );
 
-    // Listen for specific widget renders (DOM is ready when this hook fires)
-    Hooks.on('renderApplication', (app: any, html: JQuery) => {
-      if (
-        app.constructor.name === 'CalendarWidget' ||
-        app.constructor.name === 'CalendarMiniWidget'
-      ) {
-        // DOM is ready, integrate immediately
-        this.integrateWithSpecificWidget(html);
+        const $html = $(element);
+
+        // Add Simple Calendar compatibility to this widget
+        this.addSimpleCalendarCompatibility($html);
+
+        // Create fake app and emit hook for this widget
+        const fakeApp = {
+          constructor: { name: 'SimpleCalendar' },
+          id: 'simple-calendar-app',
+          element: element,
+          rendered: true,
+        };
+
+        console.log(
+          `🌉 Simple Calendar Compatibility Bridge | Emitting renderMainApp for ${widgetType} widget`
+        );
+        Hooks.callAll('renderMainApp', fakeApp, $html);
+
+        // Note: Sidebar buttons are now handled by S&S's SidebarButtonRegistry
+        // No need to manually add them to widgets anymore
       }
-    });
-
-    // Also use MutationObserver for widgets created outside the normal render cycle
-    this.setupDOMObserver();
-  }
-
-  /**
-   * Set up DOM observer to detect new calendar widgets
-   */
-  private setupDOMObserver(): void {
-    const observer = new MutationObserver(mutations => {
-      mutations.forEach(mutation => {
-        mutation.addedNodes.forEach(node => {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            const element = node as Element;
-            if (
-              element.matches?.('.calendar-widget, .calendar-mini-widget') ||
-              element.querySelector?.('.calendar-widget, .calendar-mini-widget')
-            ) {
-              // New widget detected, integrate it
-              this.integrateWithSeasonsStarsWidgets();
-            }
-          }
-        });
-      });
-    });
-
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
-
-    // Store for cleanup
-    (this as any).domObserver = observer;
-  }
-
-  /**
-   * Integrate with a specific widget (from renderApplication hook)
-   */
-  private integrateWithSpecificWidget(html: JQuery): void {
-    console.log('🌉 Simple Calendar Compatibility Bridge | Integrating with specific widget');
-
-    // Add Simple Calendar CSS classes that Simple Weather expects
-    this.addSimpleCalendarCompatibility(html);
-
-    // Create fake app and emit hook
-    const fakeApp = {
-      constructor: { name: 'SimpleCalendar' },
-      id: 'simple-calendar-app',
-      element: html[0],
-      rendered: true,
-    };
-
-    // Emit hook immediately - Simple Weather should be ready to handle it
-    console.log(
-      '🌉 Simple Calendar Compatibility Bridge | Emitting renderMainApp hook for specific widget'
     );
-    Hooks.callAll('renderMainApp', fakeApp, html);
-
-    // Add any existing sidebar buttons
-    this.addExistingSidebarButtons(html);
-  }
-
-  /**
-   * Integrate with existing Seasons & Stars widgets to trigger Simple Weather
-   */
-  public integrateWithSeasonsStarsWidgets(): void {
-    // Find Seasons & Stars calendar widgets
-    const calendarWidgets = document.querySelectorAll('.calendar-widget, .calendar-mini-widget');
-
-    if (calendarWidgets.length === 0) {
-      console.log('🌉 Simple Calendar Compatibility Bridge | No S&S widgets found yet');
-      return;
-    }
-
-    console.log(
-      `🌉 Simple Calendar Compatibility Bridge | Found ${calendarWidgets.length} S&S widget(s), triggering Simple Weather integration`
-    );
-
-    calendarWidgets.forEach(widget => {
-      const $html = $(widget);
-
-      // Add Simple Calendar compatibility to this widget
-      this.addSimpleCalendarCompatibility($html);
-
-      // Create fake app and emit hook for this widget
-      const fakeApp = {
-        constructor: { name: 'SimpleCalendar' },
-        id: 'simple-calendar-app',
-        element: widget,
-        rendered: true,
-      };
-
-      // Emit hook immediately - no delay needed
-      console.log('🌉 Simple Calendar Compatibility Bridge | Emitting renderMainApp hook');
-      console.log('🌉 Simple Calendar Compatibility Bridge | Hook details:', {
-        hookName: 'renderMainApp',
-        fakeApp: fakeApp,
-        widgetElement: widget,
-        hasJQuery: !!$html.length,
-      });
-
-      // Check if Simple Weather has registered listeners for this hook
-      const hookListeners = (Hooks as any)._hooks?.['renderMainApp'] || [];
-      console.log(
-        '🌉 Simple Calendar Compatibility Bridge | renderMainApp hook listeners:',
-        hookListeners.length
-      );
-
-      Hooks.callAll('renderMainApp', fakeApp, $html);
-      console.log('🌉 Simple Calendar Compatibility Bridge | renderMainApp hook emitted');
-
-      // Add existing sidebar buttons to this widget
-      this.addExistingSidebarButtons($html);
-    });
   }
 
   /**
@@ -938,18 +939,38 @@ class SimpleCalendarCompatibilityBridge {
     // - Has panels with classes 'fsc-of' (SC_CLASS_FOR_TAB_WRAPPER) and 'fsc-d' (SC_CLASS_FOR_TAB_CLOSED)
 
     // Add the required ID to the widget for Simple Weather to find
-    if (!$widget.attr('id')) {
-      $widget.attr('id', 'fsc-if');
+    // Simple Weather looks for #fsc-if specifically, so we need to set it
+    const originalId = $widget.attr('id');
+    $widget.attr('id', 'fsc-if');
+    if (originalId && originalId !== 'fsc-if') {
+      // Preserve original ID as a data attribute for debugging
+      $widget.attr('data-original-id', originalId);
+      console.log(
+        `🌉 Simple Calendar Compatibility Bridge | Changed ID from "${originalId}" to "fsc-if"`
+      );
+    } else {
       console.log('🌉 Simple Calendar Compatibility Bridge | Added fsc-if ID to widget');
     }
 
-    // Ensure the widget has window-content structure
+    // Ensure the widget has window-content element
     let $windowContent = $widget.find('.window-content');
     if (!$windowContent.length) {
-      // Find the main content area and wrap it or use the widget itself
-      $windowContent = $widget.hasClass('window-content') ? $widget : $widget;
-      $windowContent.addClass('window-content');
-      console.log('🌉 Simple Calendar Compatibility Bridge | Added window-content class');
+      // Widget itself might be the window-content
+      if ($widget.hasClass('window-content')) {
+        $windowContent = $widget;
+        console.log('🌉 Simple Calendar Compatibility Bridge | Widget itself is window-content');
+      } else {
+        // Wrap all widget children in window-content div
+        // This preserves any existing structure (like headers added by S&S)
+        const $wrapper = $('<div class="window-content"></div>');
+        $widget.children().wrapAll($wrapper);
+        $windowContent = $widget.find('.window-content');
+        console.log('🌉 Simple Calendar Compatibility Bridge | Wrapped children in window-content');
+      }
+    } else {
+      console.log(
+        '🌉 Simple Calendar Compatibility Bridge | Found existing window-content element'
+      );
     }
 
     // Add a dummy closed tab panel that Simple Weather can use for positioning
@@ -1299,6 +1320,39 @@ Hooks.once('seasons-stars:ready', () => {
     '🌉 Simple Calendar Compatibility Bridge | S&S ready hook firing - API guaranteed available (BLOCKING)'
   );
 
+  // Initialize bridge synchronously but DON'T fire Init hook yet
+  // We need to wait until Foundry ready hook so Simple Weather's checkDependencies() runs first
+  console.log(
+    '🌉 Simple Calendar Compatibility Bridge | Initializing bridge synchronously (BLOCKING)'
+  );
+  try {
+    // Use synchronous initialization since S&S API is now synchronously available
+    // Pass true to skip Init hook - we'll fire it manually in ready hook
+    compatBridge.initializeSync(true);
+    console.log('🌉 Simple Calendar Compatibility Bridge | Bridge initialized synchronously');
+  } catch (error) {
+    console.error(
+      '🌉 Simple Calendar Compatibility Bridge | Failed to initialize synchronously:',
+      error
+    );
+    ui.notifications?.error(
+      'Simple Calendar Compatibility Bridge failed to initialize. Check console for details.'
+    );
+  }
+
+  console.log('🌉 Simple Calendar Compatibility Bridge | Setup complete - API ready');
+});
+
+/**
+ * Fire Simple Calendar Init hook during ready
+ * TIMING: This must happen AFTER Simple Weather's ready hook runs checkDependencies()
+ * so simpleCalendarInstalled flag is set before the Init hook fires
+ */
+Hooks.once('ready', () => {
+  console.log(
+    '🌉 Simple Calendar Compatibility Bridge | Ready hook firing - about to emit Init hook'
+  );
+
   // Debug Simple Weather state
   const simpleWeatherModule = game.modules.get('foundryvtt-simple-weather');
   const attachToCalendarSetting = simpleWeatherModule?.active
@@ -1322,27 +1376,13 @@ Hooks.once('seasons-stars:ready', () => {
     }
   }
 
-  // Initialize bridge synchronously - S&S API should be immediately available
-  console.log(
-    '🌉 Simple Calendar Compatibility Bridge | Initializing bridge synchronously (BLOCKING)'
-  );
-  try {
-    // Use synchronous initialization since S&S API is now synchronously available
-    compatBridge.initializeSync();
-    console.log('🌉 Simple Calendar Compatibility Bridge | Bridge initialized synchronously');
-  } catch (error) {
-    console.error(
-      '🌉 Simple Calendar Compatibility Bridge | Failed to initialize synchronously:',
-      error
-    );
-    ui.notifications?.error(
-      'Simple Calendar Compatibility Bridge failed to initialize. Check console for details.'
-    );
+  // Now fire the Init hook that Simple Weather is waiting for
+  // This must happen AFTER Simple Weather's ready hook has set simpleCalendarInstalled flag
+  if (compatBridge) {
+    console.log('🌉 Simple Calendar Compatibility Bridge | Emitting simple-calendar-init hook');
+    Hooks.callAll('simple-calendar-init');
+    console.log('🌉 Simple Calendar Compatibility Bridge | simple-calendar-init hook emitted');
   }
-
-  console.log(
-    '🌉 Simple Calendar Compatibility Bridge | Setup complete - API ready for Item Piles ready hook'
-  );
 
   // Note: simple-calendar-ready hook will be fired by HookBridge.emitReadyHook()
   // 5 seconds after HookBridge.initialize() completes (matches Simple Calendar behavior)

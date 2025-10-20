@@ -9,6 +9,9 @@ import type {
   SimpleCalendarMonthData,
   SimpleCalendarWeekdayData,
   SimpleCalendarSeasonData,
+  SimpleCalendarCurrentDate,
+  SimpleCalendarNoteCategory,
+  SimpleCalendarGeneralSettings,
   CalendarDate as BridgeCalendarDate,
   DateChangeEvent,
   CalendarChangeEvent,
@@ -23,6 +26,19 @@ export const Icons = {
   Summer: 'summer',
 };
 
+// Simple Calendar NoteRepeat Enum - Required by Item Piles and other modules
+// Matches Simple Calendar's NoteRepeat enum values
+export const NoteRepeat = {
+  /** The note will never repeat */
+  Never: 0,
+  /** The note will repeat every week */
+  Weekly: 1,
+  /** The note will repeat every month on the same days */
+  Monthly: 2,
+  /** The note will repeat every year on the same days */
+  Yearly: 3,
+} as const;
+
 // Import S&S Integration interface types (matching bridge-integration.ts)
 interface SeasonsStarsIntegration {
   readonly isAvailable: boolean;
@@ -33,6 +49,18 @@ interface SeasonsStarsIntegration {
 
   hasFeature(feature: string): boolean;
   getFeatureVersion(feature: string): string | null;
+
+  // Sidebar button management (v0.19.0+)
+  addSidebarButton(config: {
+    name: string;
+    icon: string;
+    tooltip: string;
+    callback: () => void;
+    only?: ('main' | 'mini' | 'grid')[];
+    except?: ('main' | 'mini' | 'grid')[];
+  }): void;
+  removeSidebarButton(name: string): void;
+  hasSidebarButton(name: string): boolean;
 }
 
 interface SeasonsStarsAPI {
@@ -151,10 +179,27 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
         `Simple Calendar API bridging to Seasons & Stars v${this.seasonsStars.version} via Integration Interface`
       );
       this.setupHookBridging();
+
+      // Register any buttons that were added before S&S was ready
+      this.registerPendingButtons();
     } else {
       console.warn(
         'Simple Calendar API Bridge: No Seasons & Stars integration available, using fallback mode'
       );
+    }
+  }
+
+  /**
+   * Register any sidebar buttons that were added before S&S was available
+   */
+  private registerPendingButtons(): void {
+    if (this.sidebarButtons.length > 0) {
+      console.log(
+        `🌉 Registering ${this.sidebarButtons.length} pending sidebar button(s) with S&S`
+      );
+      this.sidebarButtons.forEach(btn => {
+        this.addButtonToWidgets(btn.name, btn.icon, btn.tooltip || '', btn.callback);
+      });
     }
   }
 
@@ -252,13 +297,15 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
    * Convert S&S CalendarDate format to Simple Calendar format
    */
   private convertSSToSCFormat(ssDate: BridgeCalendarDate): SimpleCalendarDateTime {
+    const secondValue = ssDate.time?.second || 0;
     return {
       year: ssDate.year,
       month: ssDate.month - 1, // Convert 1-based to 0-based for SC compatibility
       day: ssDate.day - 1, // Convert 1-based to 0-based for SC compatibility
       hour: ssDate.time?.hour || 0,
       minute: ssDate.time?.minute || 0,
-      seconds: ssDate.time?.second || 0, // Note: 'seconds' not 'second'
+      seconds: secondValue, // Simple Calendar expects 'seconds'
+      second: secondValue, // Simple Weather expects 'second' - provide both for compatibility
     };
   }
 
@@ -672,18 +719,101 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
         return null;
       }
 
+      // Get time configuration from calendar
+      const timeConfig = calendar.time || {
+        hoursInDay: 24,
+        minutesInHour: 60,
+        secondsInMinute: 60,
+      };
+      const secondsPerMinute = timeConfig.secondsInMinute || 60;
+      const minutesPerHour = timeConfig.minutesInHour || 60;
+      const secondsPerHour = secondsPerMinute * minutesPerHour;
+
+      // Get current date from S&S
+      let currentDate: SimpleCalendarCurrentDate | undefined = undefined;
+      try {
+        const ssCurrentDate = this.seasonsStars.api.getCurrentDate();
+        if (ssCurrentDate) {
+          // Convert from S&S format (1-based) to Simple Calendar format (0-based)
+          // Calculate seconds from time using calendar-specific time units
+          const seconds = ssCurrentDate.time
+            ? ssCurrentDate.time.hour * secondsPerHour +
+              ssCurrentDate.time.minute * secondsPerMinute +
+              ssCurrentDate.time.second
+            : 0;
+
+          currentDate = {
+            year: ssCurrentDate.year,
+            month: ssCurrentDate.month - 1, // Convert 1-based to 0-based
+            day: ssCurrentDate.day - 1, // Convert 1-based to 0-based
+            seconds: seconds,
+          };
+        }
+      } catch (err) {
+        console.warn('🌉 Simple Calendar Bridge: Failed to get current date:', err);
+      }
+
+      // Get note categories from Seasons & Stars
+      // Note categories are organizational labels for notes (e.g., "Holiday", "Event", "Reminder")
+      // Used by modules like Item Piles to determine which categories represent closed days
+      let noteCategories: SimpleCalendarNoteCategory[] = [];
+      try {
+        // NOTE: Direct access to game.seasonsStars is intentional here
+        // The noteCategories manager is not yet part of the Integration Interface,
+        // but is a stable public API that we can safely access
+        const categoriesManager = (game as any).seasonsStars?.noteCategories;
+        if (categoriesManager && typeof categoriesManager.getCategories === 'function') {
+          // Get S&S categories and convert to Simple Calendar format
+          // S&S NoteCategory: { id, name, icon, color, description?, isDefault? }
+          // SC NoteCategory: { id, name, color, textColor }
+          const ssCategories = categoriesManager.getCategories();
+          noteCategories = ssCategories.map(
+            (cat: any): SimpleCalendarNoteCategory => ({
+              id: cat.id,
+              name: cat.name,
+              color: cat.color || '#4a90e2',
+              textColor: cat.textColor || '#ffffff',
+            })
+          );
+        }
+      } catch (err) {
+        console.warn('🌉 Simple Calendar Bridge: Failed to get note categories:', err);
+      }
+
+      // Build general settings - Simple Calendar has many settings, we'll provide sensible defaults
+      // Most modules don't use these settings from getCurrentCalendar()
+      const general: SimpleCalendarGeneralSettings = {
+        gameWorldTimeIntegration: 'mixed', // Default to mixed mode
+        showClock: true,
+        noteDefaultVisibility: false,
+        postNoteRemindersOnFoundryLoad: false,
+        pf2eSync: false,
+        dateFormat: {
+          date: 'MMMM DD, YYYY',
+          time: 'HH:mm:ss',
+          monthYear: 'MMMM YAYYYYYZ',
+          chatTime: 'MMMM DD, YYYY HH:mm:ss',
+        },
+        compactViewOptions: {
+          controlLayout: 'full',
+        },
+      };
+
       // Convert to Simple Calendar format
       return {
         id: calendar.id,
         name: calendar.name || calendar.id,
         description: calendar.description || '',
+        currentDate: currentDate,
+        general: general,
         months: calendar.months || [],
         weekdays: calendar.weekdays || [],
         year: calendar.year || { prefix: '', suffix: '', epoch: 0 },
-        time: calendar.time || { hoursInDay: 24, minutesInHour: 60, secondsInMinute: 60 },
+        time: timeConfig,
         seasons: calendar.seasons || [],
         moons: calendar.moons || [],
         leapYear: calendar.leapYear || { rule: 'none' },
+        noteCategories: noteCategories,
       };
     } catch (error) {
       console.error('Failed to get current calendar:', error);
@@ -1206,6 +1336,56 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
   }
 
   /**
+   * Remove a sidebar button from calendar widgets
+   *
+   * @param name - Unique button identifier to remove
+   *
+   * @example
+   * ```typescript
+   * SimpleCalendar.api.removeSidebarButton('weather');
+   * ```
+   */
+  removeSidebarButton(name: string): void {
+    console.log(`🌉 Simple Calendar Bridge: removeSidebarButton called for "${name}"`);
+
+    // Remove from internal registry
+    const index = this.sidebarButtons.findIndex(btn => btn.name === name);
+    if (index !== -1) {
+      this.sidebarButtons.splice(index, 1);
+    }
+
+    // Remove from S&S widgets if available
+    if (!this.seasonsStars) {
+      console.warn('🌉 Cannot remove sidebar button: Seasons & Stars integration not available');
+      return;
+    }
+
+    this.seasonsStars.removeSidebarButton(name);
+  }
+
+  /**
+   * Check if a sidebar button exists
+   *
+   * @param name - Unique button identifier to check
+   * @returns True if button exists
+   *
+   * @example
+   * ```typescript
+   * if (SimpleCalendar.api.hasSidebarButton('weather')) {
+   *   console.log('Weather button is registered');
+   * }
+   * ```
+   */
+  hasSidebarButton(name: string): boolean {
+    if (!this.seasonsStars) {
+      // Fallback to internal registry when S&S not available
+      return this.sidebarButtons.some(btn => btn.name === name);
+    }
+
+    return this.seasonsStars.hasSidebarButton(name);
+  }
+
+  /**
    * Add a button to existing Seasons & Stars widgets using S&S Integration API
    */
   private addButtonToWidgets(
@@ -1214,67 +1394,33 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
     tooltip: string,
     callback: Function
   ): void {
-    console.log(`🌟 Adding weather button "${name}" to S&S widgets via Integration API`);
-
-    if (!this.seasonsStars?.widgets) {
-      console.warn('🌟 S&S widgets interface not available, falling back to DOM manipulation');
-      this.addButtonToWidgetsViaDOM(name, icon, tooltip, callback);
+    if (!this.seasonsStars) {
+      console.warn('🌉 Cannot add sidebar button: Seasons & Stars integration not available');
       return;
     }
 
-    try {
-      // Try to add button to mini widget first (preferred for Simple Weather)
-      const miniWidget = this.seasonsStars.widgets.mini;
-      if (miniWidget) {
-        // Ensure Simple Calendar compatibility DOM structure first
-        this.addSimpleCalendarCompatibility(miniWidget);
-
-        // Check if button already exists to avoid duplicates
-        if (!miniWidget.hasSidebarButton(name)) {
-          miniWidget.addSidebarButton(name, icon, tooltip, callback);
-          console.log(`🌟 Successfully added "${name}" button to mini widget via S&S API`);
-        } else {
-          console.log(`🌟 Button "${name}" already exists on mini widget`);
-        }
-      }
-
-      // Also try main widget for consistency
-      const mainWidget = this.seasonsStars.widgets.main;
-      if (mainWidget) {
-        // Ensure Simple Calendar compatibility DOM structure first
-        this.addSimpleCalendarCompatibility(mainWidget);
-
-        if (!mainWidget.hasSidebarButton(name)) {
-          mainWidget.addSidebarButton(name, icon, tooltip, callback);
-          console.log(`🌟 Successfully added "${name}" button to main widget via S&S API`);
-        } else {
-          console.log(`🌟 Button "${name}" already exists on main widget`);
-        }
-      }
-
-      // Also try grid widget if available
-      const gridWidget = this.seasonsStars.widgets.grid;
-      if (gridWidget) {
-        // Ensure Simple Calendar compatibility DOM structure first
-        this.addSimpleCalendarCompatibility(gridWidget);
-
-        if (!gridWidget.hasSidebarButton(name)) {
-          gridWidget.addSidebarButton(name, icon, tooltip, callback);
-          console.log(`🌟 Successfully added "${name}" button to grid widget via S&S API`);
-        } else {
-          console.log(`🌟 Button "${name}" already exists on grid widget`);
-        }
-      }
-
-      if (!miniWidget && !mainWidget && !gridWidget) {
-        console.warn('🌟 No S&S widgets available, falling back to DOM manipulation');
-        this.addButtonToWidgetsViaDOM(name, icon, tooltip, callback);
-      }
-    } catch (error) {
-      console.error(`🌟 Failed to add button via S&S API:`, error);
-      console.log(`🌟 Falling back to DOM manipulation for button "${name}"`);
-      this.addButtonToWidgetsViaDOM(name, icon, tooltip, callback);
+    // Normalize icon class - Simple Weather passes "fa-cloud-sun" but S&S needs "fas fa-cloud-sun"
+    let normalizedIcon = icon;
+    if (icon && !icon.includes('fa ') && !icon.includes('fas ') && !icon.includes('far ')) {
+      normalizedIcon = `fas ${icon}`;
+      console.log(`🌉 Normalized icon from "${icon}" to "${normalizedIcon}"`);
     }
+
+    console.log(`🌉 Registering sidebar button:`, {
+      name,
+      icon: normalizedIcon,
+      tooltip,
+      callbackType: typeof callback,
+      callback: callback.toString().substring(0, 100),
+    });
+
+    // Use S&S v0.19.0+ Integration Interface sidebar button management
+    this.seasonsStars.addSidebarButton({
+      name,
+      icon: normalizedIcon,
+      tooltip,
+      callback: callback as () => void,
+    });
   }
 
   /**
@@ -1957,16 +2103,19 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
    * @source Returns exact format expected by Simple Calendar modules
    */
   private convertSSToSCDateTime(ssDate: CalendarDate): SimpleCalendarDateTime {
+    const secondValue = ssDate.time?.second || 0;
+
     const baseDate = {
       year: ssDate.year,
       month: ssDate.month - 1, // Convert from 1-based to 0-based
       day: ssDate.day - 1, // Convert from 1-based to 0-based
       hour: ssDate.time?.hour || 0,
       minute: ssDate.time?.minute || 0,
-      seconds: ssDate.time?.second || 0, // Note: 'seconds' not 'second'
+      seconds: secondValue, // Simple Calendar expects 'seconds'
+      second: secondValue, // Simple Weather expects 'second' - provide both for compatibility
     };
 
-    // Some modules (like SmallTime) expect getCurrentDate to include display data
+    // Some modules (like SmallTime and Simple Weather) expect getCurrentDate to include display data
     // Use S&S formatDate API for robust formatting
     const monthName =
       this.seasonsStars?.api?.formatDate?.(ssDate, { format: '{{month.name}}' }) ||
@@ -1976,11 +2125,21 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
     const weekdayNames = this.seasonsStars?.api?.getWeekdayNames?.() || [];
     const dayOfTheWeek = ssDate.weekday !== undefined ? ssDate.weekday : 0;
 
+    // Format date string for Simple Weather (e.g., "June 15, 2024")
+    const formattedDate = `${monthName} ${ssDate.day}, ${ssDate.year}`;
+
+    // Format time string for Simple Weather (e.g., "12:30")
+    const hour = baseDate.hour;
+    const minute = baseDate.minute.toString().padStart(2, '0');
+    const formattedTime = `${hour}:${minute}`;
+
     return {
       ...baseDate,
       weekdays: weekdayNames,
       dayOfTheWeek: dayOfTheWeek,
       display: {
+        date: formattedDate,
+        time: formattedTime,
         monthName,
         day: ssDate.day.toString(),
         year: ssDate.year.toString(),
