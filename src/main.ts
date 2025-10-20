@@ -6,7 +6,9 @@
 import { SeasonsStarsProvider } from './providers/seasons-stars';
 import { SeasonsStarsIntegrationProvider } from './providers/seasons-stars-integration';
 import { SimpleCalendarAPIBridge, Icons, NoteRepeat } from './api/simple-calendar-api';
+import { SimpleCalendarConverter } from './api/simple-calendar-converter';
 import { HookBridge } from './api/hooks';
+import { ButtonRegistration } from './api/button-registration';
 import type { CalendarProvider } from './types';
 
 /**
@@ -591,6 +593,7 @@ class SimpleCalendarCompatibilityBridge {
   private provider: CalendarProvider | null = null;
   private api: SimpleCalendarAPIBridge | null = null;
   private hookBridge: HookBridge | null = null;
+  private buttonRegistration: ButtonRegistration | null = null;
 
   /**
    * Initialize the compatibility bridge synchronously for immediate API availability
@@ -640,6 +643,10 @@ class SimpleCalendarCompatibilityBridge {
 
     // Set up integration with Seasons & Stars widgets
     this.setupWidgetIntegration();
+
+    // Register import buttons with S&S button registry
+    this.buttonRegistration = new ButtonRegistration();
+    this.buttonRegistration.register();
 
     console.log(
       '🌉 Simple Calendar Compatibility Bridge | Ready synchronously - API immediately available'
@@ -692,6 +699,10 @@ class SimpleCalendarCompatibilityBridge {
 
     // Set up integration with Seasons & Stars widgets
     this.setupWidgetIntegration();
+
+    // Register import buttons with S&S button registry
+    this.buttonRegistration = new ButtonRegistration();
+    this.buttonRegistration.register();
 
     console.log('🌉 Simple Calendar Compatibility Bridge | Ready');
     ui.notifications?.info(game.i18n.localize('SIMPLE_CALENDAR_COMPAT.API_READY'));
@@ -777,6 +788,8 @@ class SimpleCalendarCompatibilityBridge {
       provider: this.provider,
       api: this.api,
       version: game.modules.get('foundryvtt-simple-calendar-compat')?.version || '0.1.0',
+      // Expose converter for Calendar Builder file import
+      getConverter: () => new SimpleCalendarConverter(),
     };
 
     console.log('🌉 Simple Calendar Compatibility Bridge | API exposed globally');
@@ -1176,6 +1189,12 @@ class SimpleCalendarCompatibilityBridge {
    * Clean up when module is disabled
    */
   cleanup(): void {
+    // Unregister import buttons
+    if (this.buttonRegistration) {
+      this.buttonRegistration.unregister();
+      this.buttonRegistration = null;
+    }
+
     if ((window as any).SimpleCalendar) {
       delete (window as any).SimpleCalendar;
     }
