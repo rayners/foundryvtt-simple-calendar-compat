@@ -881,36 +881,41 @@ class SimpleCalendarCompatibilityBridge {
   public setupWidgetIntegration(): void {
     console.log('🌉 Simple Calendar Compatibility Bridge | Setting up widget integration');
 
-    // Listen for Seasons & Stars native widget render hook
-    Hooks.on(
-      'seasons-stars:renderCalendarWidget',
-      (widget: any, element: HTMLElement, widgetType: string) => {
+    // S&S widgets are Foundry Applications that fire standard render{ClassName} hooks
+    // Listen for all S&S widget render hooks
+    const widgetTypes = ['CalendarWidget', 'CalendarMiniWidget', 'CalendarGridWidget'];
+
+    widgetTypes.forEach(widgetType => {
+      const hookName = `render${widgetType}`;
+
+      Hooks.on(hookName, (app: any, html: JQuery<HTMLElement>) => {
         console.log(
-          `🌉 Simple Calendar Compatibility Bridge | seasons-stars:renderCalendarWidget fired for ${widgetType} widget`
+          `🌉 Simple Calendar Compatibility Bridge | ${hookName} hook fired for ${widgetType}`
         );
 
-        const $html = $(element);
-
         // Add Simple Calendar compatibility to this widget
-        this.addSimpleCalendarCompatibility($html);
+        this.addSimpleCalendarCompatibility(html);
 
         // Create fake app and emit hook for this widget
+        // Simple Weather listens for 'renderMainApp' to attach its UI
         const fakeApp = {
           constructor: { name: 'SimpleCalendar' },
           id: 'simple-calendar-app',
-          element: element,
+          element: html[0],
           rendered: true,
         };
 
         console.log(
           `🌉 Simple Calendar Compatibility Bridge | Emitting renderMainApp for ${widgetType} widget`
         );
-        Hooks.callAll('renderMainApp', fakeApp, $html);
+        Hooks.callAll('renderMainApp', fakeApp, html);
 
         // Note: Sidebar buttons are now handled by S&S's SidebarButtonRegistry
         // No need to manually add them to widgets anymore
-      }
-    );
+      });
+
+      console.log(`🌉 Simple Calendar Compatibility Bridge | Registered ${hookName} hook listener`);
+    });
   }
 
   /**
