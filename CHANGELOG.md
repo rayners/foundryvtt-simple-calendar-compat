@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Your support helps fund bridge improvements and additional calendar module support!
 
+## [0.4.1](https://github.com/rayners/foundryvtt-simple-calendar-compat/compare/v0.4.0...v0.4.1) (2025-11-10)
+
+
+### Bug Fixes
+
+* Simple Weather button registration timing and module ID ([#69](https://github.com/rayners/foundryvtt-simple-calendar-compat/issues/69)) ([b24c21c](https://github.com/rayners/foundryvtt-simple-calendar-compat/commit/b24c21c3274e7d198adef11b22a6e8b0da610eae))
+
 ## [0.4.0](https://github.com/rayners/foundryvtt-simple-calendar-compat/compare/v0.3.4...v0.4.0) (2025-10-15)
 
 
