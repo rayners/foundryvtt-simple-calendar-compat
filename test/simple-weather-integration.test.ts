@@ -75,7 +75,7 @@ describe('Simple Weather Integration', () => {
         id: 'foundryvtt-simple-calendar',
         title: 'Simple Calendar (Compatibility Bridge)',
         active: true,
-        version: '2.4.18',
+        version: '2.4.18.5',
       };
 
       mockModules.set('foundryvtt-simple-calendar', fakeModule);
@@ -84,7 +84,7 @@ describe('Simple Weather Integration', () => {
       const detectedModule = game.modules.get('foundryvtt-simple-calendar');
       expect(detectedModule).toBeDefined();
       expect(detectedModule.active).toBe(true);
-      expect(detectedModule.version).toBe('2.4.18');
+      expect(detectedModule.version).toBe('2.4.18.5');
     });
   });
 
