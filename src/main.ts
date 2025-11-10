@@ -11,9 +11,9 @@ import type { CalendarProvider } from './types';
 
 /**
  * Version number that Simple Weather expects to see
- * This matches Simple Calendar v2.4.18 for compatibility
+ * This matches Simple Calendar v2.4.18.5 for compatibility
  */
-const FAKE_SIMPLE_CALENDAR_VERSION = '2.4.18';
+const FAKE_SIMPLE_CALENDAR_VERSION = '2.4.18.5';
 
 /**
  * CRITICAL: Expose SimpleCalendar immediately at module parse time
@@ -221,8 +221,8 @@ console.log('🌉 Simple Calendar Compatibility Bridge | SimpleCalendar global e
     simpleCalendarIcons: !!(globalThis as any).SimpleCalendar?.Icons,
     fakeModuleRegistered: !!game.modules?.get('foundryvtt-simple-calendar'),
     fakeModuleActive: game.modules?.get('foundryvtt-simple-calendar')?.active,
-    simpleWeatherDetected: !!game.modules?.get('foundryvtt-simple-weather'),
-    simpleWeatherActive: game.modules?.get('foundryvtt-simple-weather')?.active,
+    simpleWeatherDetected: !!game.modules?.get('simple-weather'),
+    simpleWeatherActive: game.modules?.get('simple-weather')?.active,
     seasonsStarsDetected: !!game.modules?.get('seasons-and-stars'),
     seasonsStarsActive: game.modules?.get('seasons-and-stars')?.active,
     seasonsStarsAPI: !!(game as any).seasonsStars,
@@ -788,9 +788,9 @@ class SimpleCalendarCompatibilityBridge {
   registerFakeSimpleCalendarModule(): void {
     // Check if we should register the fake module
     // If Simple Weather is set to detached mode, don't register so it shows its own UI
-    const simpleWeatherModule = game.modules.get('foundryvtt-simple-weather');
+    const simpleWeatherModule = game.modules.get('simple-weather');
     if (simpleWeatherModule?.active) {
-      const attachedToSC = game.settings?.get('foundryvtt-simple-weather', 'attachToCalendar');
+      const attachedToSC = game.settings?.get('simple-weather', 'attachToCalendar');
       if (attachedToSC === false) {
         console.log(
           '🌉 Simple Calendar Compatibility Bridge | Simple Weather is in detached mode, skipping fake module registration'
@@ -1229,7 +1229,7 @@ Hooks.once('init', () => {
   // Register fake Simple Calendar module entry in game.modules Collection
   // This makes game.modules.get('foundryvtt-simple-calendar') return a valid module
   const seasonsStarsModule = game.modules.get('seasons-and-stars');
-  const simpleWeatherModule = game.modules.get('foundryvtt-simple-weather');
+  const simpleWeatherModule = game.modules.get('simple-weather');
 
   if (
     (seasonsStarsModule?.active || simpleWeatherModule?.active) &&
@@ -1321,13 +1321,13 @@ Hooks.once('seasons-stars:ready', () => {
   );
 
   // Initialize bridge synchronously but DON'T fire Init hook yet
-  // We need to wait until Foundry ready hook so Simple Weather's checkDependencies() runs first
+  // We need to wait until all ready hooks complete so Simple Weather's checkDependencies() runs first
   console.log(
     '🌉 Simple Calendar Compatibility Bridge | Initializing bridge synchronously (BLOCKING)'
   );
   try {
     // Use synchronous initialization since S&S API is now synchronously available
-    // Pass true to skip Init hook - we'll fire it manually in ready hook
+    // Pass true to skip Init hook - we'll fire it using setImmediate in ready hook
     compatBridge.initializeSync(true);
     console.log('🌉 Simple Calendar Compatibility Bridge | Bridge initialized synchronously');
   } catch (error) {
@@ -1354,9 +1354,9 @@ Hooks.once('ready', () => {
   );
 
   // Debug Simple Weather state
-  const simpleWeatherModule = game.modules.get('foundryvtt-simple-weather');
+  const simpleWeatherModule = game.modules.get('simple-weather');
   const attachToCalendarSetting = simpleWeatherModule?.active
-    ? game.settings?.get('foundryvtt-simple-weather', 'attachToCalendar')
+    ? game.settings?.get('simple-weather', 'attachToCalendar')
     : 'N/A';
   console.log('🌉 Simple Calendar Compatibility Bridge | Simple Weather module debug:', {
     found: !!simpleWeatherModule,
@@ -1376,12 +1376,14 @@ Hooks.once('ready', () => {
     }
   }
 
-  // Now fire the Init hook that Simple Weather is waiting for
-  // This must happen AFTER Simple Weather's ready hook has set simpleCalendarInstalled flag
+  // Now fire the Init hook after all ready hooks have completed
+  // Use setImmediate (or queueMicrotask) to defer until after current call stack
   if (compatBridge) {
-    console.log('🌉 Simple Calendar Compatibility Bridge | Emitting simple-calendar-init hook');
-    Hooks.callAll('simple-calendar-init');
-    console.log('🌉 Simple Calendar Compatibility Bridge | simple-calendar-init hook emitted');
+    queueMicrotask(() => {
+      console.log('🌉 Simple Calendar Compatibility Bridge | Emitting simple-calendar-init hook');
+      Hooks.callAll('simple-calendar-init');
+      console.log('🌉 Simple Calendar Compatibility Bridge | simple-calendar-init hook emitted');
+    });
   }
 
   // Note: simple-calendar-ready hook will be fired by HookBridge.emitReadyHook()
