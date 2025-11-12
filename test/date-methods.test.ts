@@ -92,6 +92,7 @@ describe('Simple Calendar API Bridge - Date Methods', () => {
           monthName: 'June',
           day: '15',
           year: '2024',
+          weekday: 'Wed',        // Simple Weather expects weekday name for weather descriptions
         },
       });
     });

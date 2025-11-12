@@ -56,6 +56,8 @@ export type SimpleCalendarDateTime = SimpleCalendarDate &
       day: string;
       /** The numerical representation of the year */
       year: string;
+      /** The name of the weekday (e.g., "Monday") - required by Simple Weather */
+      weekday?: string;
     };
     /** Array of weekday names (required by Simple Weather) */
     weekdays?: string[];

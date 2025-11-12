@@ -91,6 +91,7 @@ describe('Simple Calendar API Bridge - Timestamp Methods', () => {
           monthName: 'June',
           day: '15',
           year: '2024',
+          weekday: 'Wed',        // Simple Weather expects weekday name for weather descriptions
         },
       });
     });
@@ -152,6 +153,77 @@ describe('Simple Calendar API Bridge - Timestamp Methods', () => {
       );
 
       consoleSpy.mockRestore();
+    });
+
+    it('should include weekday name in display for Simple Weather compatibility', () => {
+      const mockSeasonsStars = {
+        isAvailable: true,
+        version: '1.0.0',
+        api: {
+          worldTimeToDate: (timestamp: number) => ({
+            year: 2024,
+            month: 3, // March (1-based)
+            day: 25, // 25th (1-based)
+            weekday: 1, // Monday
+            time: { hour: 8, minute: 15, second: 0 },
+          }),
+          formatDate: (date: any, options: any) => {
+            if (options.format === '{{month.name}}') return 'March';
+            return '';
+          },
+          getCurrentDate: vi.fn(),
+          dateToWorldTime: vi.fn(),
+          setActiveCalendar: vi.fn(),
+          getAvailableCalendars: vi.fn(),
+          getMonthNames: vi.fn(),
+          getWeekdayNames: () => ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+          getActiveCalendar: vi.fn(),
+        },
+        widgets: {
+          main: null,
+          mini: null,
+          grid: null,
+          getPreferredWidget: vi.fn(),
+          onWidgetChange: vi.fn(),
+          offWidgetChange: vi.fn(),
+        },
+        hooks: {
+          onDateChanged: vi.fn(),
+          onCalendarChanged: vi.fn(),
+          onReady: vi.fn(),
+          off: vi.fn(),
+        },
+        hasFeature: vi.fn(),
+        getFeatureVersion: vi.fn(),
+      };
+
+      api = new SimpleCalendarAPIBridge(mockSeasonsStars as any);
+      const result = api.timestampToDate(12345);
+
+      // Verify weekday is correctly included in display
+      expect(result?.display?.weekday).toBe('Monday');
+      expect(result?.dayOfTheWeek).toBe(1);
+
+      // Full object check
+      expect(result).toEqual({
+        year: 2024,
+        month: 2, // March (0-based) - converted from 1-based month 3
+        day: 24, // 24 (0-based) - converted from 25
+        hour: 8,
+        minute: 15,
+        seconds: 0,
+        second: 0,
+        weekdays: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+        dayOfTheWeek: 1,
+        display: {
+          date: 'March 25, 2024',
+          time: '8:15',
+          monthName: 'March',
+          day: '25',
+          year: '2024',
+          weekday: 'Monday',
+        },
+      });
     });
 
     it('should handle timestamps with complex time components', () => {

@@ -2133,6 +2133,9 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
     const minute = baseDate.minute.toString().padStart(2, '0');
     const formattedTime = `${hour}:${minute}`;
 
+    // Get weekday name from the weekday names array
+    const weekdayName = weekdayNames[dayOfTheWeek] || 'Day';
+
     return {
       ...baseDate,
       weekdays: weekdayNames,
@@ -2143,6 +2146,7 @@ export class SimpleCalendarAPIBridge implements SimpleCalendarAPI {
         monthName,
         day: ssDate.day.toString(),
         year: ssDate.year.toString(),
+        weekday: weekdayName, // Add weekday name for Simple Weather compatibility
       },
     };
   }
