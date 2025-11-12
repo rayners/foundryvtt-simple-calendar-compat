@@ -207,7 +207,7 @@ describe('Simple Calendar API Bridge - Timestamp Methods', () => {
       // Full object check
       expect(result).toEqual({
         year: 2024,
-        month: 2, // February (0-based) - converted from March
+        month: 2, // March (0-based) - converted from 1-based month 3
         day: 24, // 24 (0-based) - converted from 25
         hour: 8,
         minute: 15,
